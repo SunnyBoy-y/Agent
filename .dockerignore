@@ -1,0 +1,12 @@
+data/
+venv/
+.idea/
+.vscode/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+tests/
+*.log

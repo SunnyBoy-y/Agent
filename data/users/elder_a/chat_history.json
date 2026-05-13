@@ -1,0 +1,12 @@
+[
+  {
+    "timestamp": "2026-04-26 12:32:32",
+    "role": "user",
+    "content": "我今天头有点晕"
+  },
+  {
+    "timestamp": "2026-04-26 12:32:32",
+    "role": "assistant",
+    "content": "先坐下歇会儿，我陪您缓缓。"
+  }
+]

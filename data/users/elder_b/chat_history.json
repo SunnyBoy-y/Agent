@@ -1,0 +1,12 @@
+[
+  {
+    "timestamp": "2026-04-26 12:32:32",
+    "role": "user",
+    "content": "我想听京剧"
+  },
+  {
+    "timestamp": "2026-04-26 12:32:32",
+    "role": "assistant",
+    "content": "好呀，我陪您听一段。"
+  }
+]

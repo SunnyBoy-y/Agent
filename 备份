@@ -1,0 +1,49 @@
+model_provider = "OpenAI"
+model = "gpt-5.5"
+review_model = "gpt-5.4"
+model_reasoning_effort = "medium"
+disable_response_storage = true
+
+
+[model_providers.OpenAI]
+name = "OpenAI"
+base_url = "https://capi.quan2go.com/openai"
+wire_api = "responses"
+requires_openai_auth = true
+
+[windows]
+sandbox = "elevated"
+
+[projects.'c:\users\13600']
+trust_level = "trusted"
+
+[projects.'c:\users\13600\desktop\新建文件夹\sub2api-main']
+trust_level = "trusted"
+
+[projects.'c:\users\13600\desktop\realtimeasr']
+trust_level = "trusted"
+
+[projects.'c:\users\13600\desktop\zhongzhuan']
+trust_level = "trusted"
+
+[projects.'c:\users\13600\desktop\nextchat-main']
+trust_level = "trusted"
+
+[projects.'c:\users\13600\desktop\yu\nextchat-main']
+trust_level = "trusted"
+
+[projects.'c:\users\13600\desktop\motionstreamer-main']
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+
+[features]
+memories = true
+terminal_resize_reflow = true
+
+
+
