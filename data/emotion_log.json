@@ -1,1 +1,67 @@
-[]
+[
+  {
+    "timestamp": "2026-05-13 20:23:03",
+    "emotion": "concerned",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:23:27",
+    "emotion": "concerned",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:33:19",
+    "emotion": "concerned",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:33:32",
+    "emotion": "happy",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:33:33",
+    "emotion": "happy",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:33:59",
+    "emotion": "neutral",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:34:00",
+    "emotion": "neutral",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:34:06",
+    "emotion": "concerned",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:37:58",
+    "emotion": "concerned",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:38:17",
+    "emotion": "concerned",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:38:52",
+    "emotion": "happy",
+    "risk_level": "safe"
+  },
+  {
+    "timestamp": "2026-05-13 20:39:06",
+    "emotion": "neutral",
+    "risk_level": "low"
+  },
+  {
+    "timestamp": "2026-05-13 20:39:20",
+    "emotion": "concerned",
+    "risk_level": "low"
+  }
+]

@@ -148,8 +148,10 @@ class SystemOrchestrator:
                 
                 content = result.get("content", "")
                 if content:
-                    full_response = content
-                    yield create_event("token", content)
+                    for chunk in self._chunk_response_text(content):
+                        full_response += chunk
+                        yield create_event("token", chunk)
+                        await asyncio.sleep(0)
                 
                 if result.get("action"):
                     yield create_event("action", result["action"])
@@ -269,22 +271,49 @@ class SystemOrchestrator:
                 else:
                      content = f"这里面可能有诈骗风险（等级：{analysis.get('risk_level')}），千万别转账！我这就通知您的家人。"
             
-            risk = analysis.get("risk_level", "low").lower()
-            if risk == "high": risk = "high" # Normalize
-            
+            risk = self._normalize_risk_level(analysis.get("risk_level", "low"))
             return {
                 "content": content,
                 "action": "warning" if risk != "safe" else "nod",
-                "risk_level": risk
+                "risk_level": risk,
+                "family_message": intervention.get("action_to_family"),
+                "community_message": intervention.get("action_to_community"),
             }
-        return {"content": "系统错误：未知的智能体。", "action": "shake"}
+        return {"content": "系统暂时没找到合适的处理专员，我先陪您慢慢说。", "action": "nod", "risk_level": "low"}
+
+    def _chunk_response_text(self, text: str, chunk_size: int = 18) -> List[str]:
+        """Split non-streaming agent output into small SSE token chunks."""
+        text = text or ""
+        chunks: List[str] = []
+        buffer = ""
+        for char in text:
+            buffer += char
+            if len(buffer) >= chunk_size or char in "，。！？；,.!?;":
+                chunks.append(buffer)
+                buffer = ""
+        if buffer:
+            chunks.append(buffer)
+        return chunks
+
+    def _normalize_risk_level(self, value: Any) -> str:
+        text = str(value or "").strip().lower()
+        if "crisis" in text or "危机" in text:
+            return "crisis"
+        if "high" in text or "高" in text or "紧急" in text:
+            return "high"
+        if "medium" in text or "中" in text or "确认" in text:
+            return "medium"
+        if "low" in text or "低" in text or "疑似" in text:
+            return "low"
+        if "safe" in text or "安全" in text:
+            return "safe"
+        return "low"
 
     async def _run_emotional_agent(self, user_input: str, context: Dict[str, Any]):
-        """复用原有的情感智能体流式逻辑"""
+        """Handle emotional agent streaming output and tool events."""
         parentheses_depth = 0
-        print(user_input)
-        print(context)
-        
+        streamed_text = ""
+
         async for event in self.emotional_agent.astream_run(
             input_text=user_input,
             voice_text=context.get("audio_transcript"),
@@ -294,27 +323,28 @@ class SystemOrchestrator:
         ):
             try:
                 kind = event["event"]
-                print("kind=", kind)
+
                 if kind == "on_chat_model_stream":
                     chunk = event.get("data", {}).get("chunk")
-                    if chunk and hasattr(chunk, "content") and chunk.content:
-                        # 实时过滤括号
+                    chunk_content = self._extract_message_text(
+                        getattr(chunk, "content", None) if chunk else None
+                    )
+                    if chunk_content:
                         filtered_content = ""
-                        for char in chunk.content:
-                            if char in ['(', '（']:
+                        for char in chunk_content:
+                            if char in ["(", "（"]:
                                 parentheses_depth += 1
                                 continue
-                            elif char in [')', '）']:
+                            if char in [")", "）"]:
                                 if parentheses_depth > 0:
                                     parentheses_depth -= 1
                                 continue
-
                             if parentheses_depth > 0:
                                 continue
-                            else:
-                                filtered_content += char
+                            filtered_content += char
 
                         if filtered_content:
+                            streamed_text += filtered_content
                             yield create_event("token", filtered_content)
 
                 elif kind == "on_tool_start":
@@ -345,7 +375,7 @@ class SystemOrchestrator:
                             status = output_data.get("status")
                             photos = output_data.get("photos", [])
                             if status == "success" and photos:
-                                logger.info(f"📸 检索到 {len(photos)} 张照片")
+                                logger.info(f"Found {len(photos)} photos from emotional agent")
                                 yield create_event("photos", photos)
                             else:
                                 yield create_event(
@@ -379,37 +409,145 @@ class SystemOrchestrator:
                     metadata = event.get("metadata")
                     if isinstance(metadata, dict) and metadata.get("langgraph_node") == "agent":
                         output = event.get("data", {}).get("output")
-                        if output and hasattr(output, "tool_calls") and output.tool_calls:
-                            for tool_call in output.tool_calls:
-                                if isinstance(tool_call, dict) and tool_call.get("name") == "EmotionalStateUpdate":
-                                    args = tool_call.get("args", {})
-                                    if isinstance(args, dict):
-                                        if "expression" in args:
-                                            yield create_event("expression", args["expression"])
-                                        if "action" in args:
-                                            yield create_event("action", args["action"])
-                                        if "risk_level" in args:
-                                            yield create_event("risk", args["risk_level"])
+                        final_content = self._strip_parenthetical_text(
+                            self._extract_message_text(
+                                getattr(output, "content", None) if output else None
+                            )
+                        )
+                        if final_content:
+                            remaining_text = ""
+                            if not streamed_text:
+                                remaining_text = final_content
+                            elif final_content.startswith(streamed_text):
+                                remaining_text = final_content[len(streamed_text):]
 
-                                        # 副作用
-                                        if "profile_update" in args and args["profile_update"]:
-                                            await asyncio.to_thread(
-                                                lambda: [self.emotional_agent.rag_helper.update_user_profile(k, v)
-                                                         for k, v in args["profile_update"].items()]
-                                            )
-                                        if "risk_level" in args and "expression" in args:
-                                            await asyncio.to_thread(
-                                                self.emotional_agent.rag_helper.log_emotion,
-                                                args["expression"],
-                                                args["risk_level"]
-                                            )
+                            if remaining_text:
+                                streamed_text += remaining_text
+                                yield create_event("token", remaining_text)
+
+                elif kind == "on_chain_end" and event.get("name") == "agent":
+                    output = event.get("data", {}).get("output")
+                    emotional_args = self._extract_emotional_update_args(output)
+                    if emotional_args:
+                        if "expression" in emotional_args:
+                            yield create_event("expression", emotional_args["expression"])
+                        if "action" in emotional_args:
+                            yield create_event("action", emotional_args["action"])
+                        if "risk_level" in emotional_args:
+                            yield create_event("risk", emotional_args["risk_level"])
+                        if "profile_update" in emotional_args and emotional_args["profile_update"]:
+                            await asyncio.to_thread(
+                                lambda: [
+                                    self.emotional_agent.rag_helper.update_user_profile(k, v)
+                                    for k, v in emotional_args["profile_update"].items()
+                                ]
+                            )
+                        if "risk_level" in emotional_args and "expression" in emotional_args:
+                            await asyncio.to_thread(
+                                self.emotional_agent.rag_helper.log_emotion,
+                                emotional_args["expression"],
+                                emotional_args["risk_level"]
+                            )
+
+                    if not streamed_text:
+                        fallback_reply = self._build_emotional_fallback_reply(
+                            user_input=user_input,
+                            context=context,
+                            emotional_args=emotional_args
+                        )
+                        if fallback_reply:
+                            streamed_text += fallback_reply
+                            yield create_event("token", fallback_reply)
             except Exception as inner_e:
-                logger.error(f"处理情感智能体事件时出错: {inner_e}")
+                logger.error(f"Emotional agent streaming handling failed: {inner_e}")
                 logger.error(traceback.format_exc())
-                yield create_event("log", f"⚠️ 事件处理异常: {str(inner_e)}")
+                yield create_event("log", f"Emotional agent stream parsing failed: {str(inner_e)}")
 
-        logger.info("✅ 情感回复流式传111输完成")
-        yield create_event("log", "✅ 情感回复流式传输完成")
+        logger.info("Emotional response streaming completed")
+        yield create_event("log", "情感回复流式传输完成")
+
+    def _extract_message_text(self, content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            text_parts: List[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    text_parts.append(item)
+                elif isinstance(item, dict):
+                    if item.get("type") == "text" and isinstance(item.get("text"), str):
+                        text_parts.append(item["text"])
+            return "".join(text_parts)
+        return ""
+
+    def _strip_parenthetical_text(self, text: str) -> str:
+        if not text:
+            return ""
+
+        result: List[str] = []
+        depth = 0
+        for char in text:
+            if char in ['(', '（']:
+                depth += 1
+                continue
+            if char in [')', '）']:
+                if depth > 0:
+                    depth -= 1
+                continue
+            if depth == 0:
+                result.append(char)
+
+        return "".join(result)
+
+    def _extract_emotional_update_args(self, output: Any) -> Dict[str, Any]:
+        messages = []
+        if isinstance(output, dict):
+            messages = output.get("messages") or []
+        elif output is not None:
+            messages = [output]
+
+        for message in reversed(messages):
+            tool_calls = getattr(message, "tool_calls", None) or []
+            for tool_call in tool_calls:
+                if not isinstance(tool_call, dict):
+                    continue
+                args = tool_call.get("args", {})
+                if not isinstance(args, dict):
+                    continue
+                if tool_call.get("name") == "EmotionalStateUpdate":
+                    if args:
+                        return args
+                    continue
+                if {"expression", "action", "risk_level"} & set(args.keys()):
+                    return args
+        return {}
+
+    def _build_emotional_fallback_reply(
+        self,
+        user_input: str,
+        context: Dict[str, Any],
+        emotional_args: Optional[Dict[str, Any]] = None
+    ) -> str:
+        profile = context.get("user_profile") or {}
+        name = profile.get("name") or "您"
+        expression = (emotional_args or {}).get("expression", "neutral")
+        risk_level = (emotional_args or {}).get("risk_level", "low")
+        normalized_input = (user_input or "").strip()
+
+        greeting_keywords = ("你好", "您好", "在吗", "在不在", "哈喽")
+        if normalized_input in greeting_keywords or any(k in normalized_input for k in greeting_keywords):
+            return f"{name}，您好呀，我在这儿陪着您呢。您这会儿想先聊聊天，还是想听段戏、看看老照片？"
+
+        if risk_level == "high":
+            return f"{name}，我听着您这会儿挺难受的，先别一个人扛着。我陪您慢慢说，您现在最想让我先帮您做点什么？"
+        if expression == "sad":
+            return f"{name}，我听出来您心里有点发沉。没事，咱们慢慢唠，您愿意跟我说说刚才最挂心的是啥吗？"
+        if expression == "concerned":
+            return f"{name}，我在呢。您刚才这句话我听进心里了，咱们慢慢说，看看我能陪您一起理一理什么。"
+        if expression == "happy":
+            return f"{name}，听您这么一说，我也跟着高兴。您要是愿意，咱们接着往下聊。"
+
+        return f"{name}，我在这儿陪着您。您要是愿意，就接着跟我说说，我认真听着呢。"
 
     def _parse_tool_output(self, output_str: Any) -> Dict[str, Any]:
         if isinstance(output_str, list) and output_str:
