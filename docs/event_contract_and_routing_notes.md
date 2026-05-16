@@ -331,3 +331,7 @@ class ContextGuard:
 子女端、老人端、社区端、危机事件、风险证据、音乐库和 Planner 状态的接口草案，统一放在：
 
 - `docs/frontend_backend_interface_proposal.md`
+
+接口匹配度、数据落盘和代码实施顺序复核见：
+
+- `docs/interface_data_code_review.md`
