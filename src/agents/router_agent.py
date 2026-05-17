@@ -3,6 +3,7 @@ from typing import Dict, Any
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from src.config import Config
+from src.services.context_guard import ContextGuard
 from src.utils.logger import logger
 
 class RouterAgent:
@@ -42,13 +43,15 @@ class RouterAgent:
             "emotional_agent" # 默认/闲聊/综合
         ]
 
+        self.context_guard = ContextGuard()
+
     async def route(self, input_text: str, context: Dict[str, Any] = None) -> str:
         """
         分析用户意图，选择最合适的智能体（异步版本，保留 LLM 路由兜底）
         """
         logger.info(f"RouterAgent routing: {input_text}")
         context = context or {}
-        rule_based_route = self._route_by_rules(input_text)
+        rule_based_route = self._route_by_rules(input_text, context=context)
         if rule_based_route:
             logger.info(f"Rule-based route selected: {rule_based_route}")
             return rule_based_route
@@ -57,17 +60,22 @@ class RouterAgent:
         # 保留 LLM 路由作为兜底
         return await self._llm_route(input_text, context)
 
-    def route_sync(self, input_text: str) -> str:
+    def route_sync(self, input_text: str, context: Dict[str, Any] = None) -> str:
         """
         同步路由：纯规则匹配，不调 LLM。延迟 < 1ms。
         覆盖 95%+ 的用户输入。
         """
-        return self._route_by_rules(input_text)
+        return self._route_by_rules(input_text, context=context)
 
-    def _route_by_rules(self, input_text: str) -> str:
+    def _route_by_rules(self, input_text: str, context: Dict[str, Any] = None) -> str:
         text = (input_text or "").strip()
         if not text:
             return "emotional_agent"
+
+        context_guard = getattr(self, "context_guard", None) or ContextGuard()
+        guarded_route = context_guard.route_override(text, context=context)
+        if guarded_route:
+            return guarded_route
 
         # === 必须走专家的硬规则 ===
         emergency_keywords = ["救命", "摔倒", "跌倒", "起不来", "胸口疼", "胸闷", "喘不上气", "呼吸困难", "快不行了"]

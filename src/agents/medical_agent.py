@@ -1,17 +1,22 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 import json
-import os
-from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from src.config import Config
+from src.policies.safety_policy import SafetyPolicy
 from src.utils.logger import logger
 from src.utils.rag_helper import RAGHelper
 from src.tools.professional_skills import ProfessionalSkills
+from src.services.user_context_service import UserContextService
 
 class MedicalAgent:
-    def __init__(self):
+    def __init__(
+        self,
+        safety_policy: SafetyPolicy | None = None,
+        user_context_service: UserContextService | None = None,
+        medication_reminder_service: Any | None = None,
+    ):
         self.llm = ChatOpenAI(
             openai_api_key=Config.OPENAI_API_KEY,
             openai_api_base=Config.OPENAI_API_BASE,
@@ -19,6 +24,9 @@ class MedicalAgent:
             temperature=0.1
         )
         self.rag_helper = RAGHelper()
+        self.safety_policy = safety_policy or SafetyPolicy()
+        self.user_context_service = user_context_service
+        self.medication_reminder_service = medication_reminder_service
         self.emergency_keywords = ["救命", "摔倒", "跌倒", "起不来", "胸口疼", "胸闷", "喘不上气", "呼吸困难", "快不行了"]
 
     async def arun(self, input_text: str, context: Dict[str, Any] = None):
@@ -50,22 +58,21 @@ class MedicalAgent:
             return self._build_emergency_response(input_text, "high")
         
         elif analysis.get("intent") == "medication_query":
-            # 查询用药计划
-            meds = profile.get("medications", [])
-            if not meds:
-                response_data["content"] = "我这边还没记到您的用药。要是新开的药，您告诉我名字和用法，我帮您记上。"
+            # ??????????MedicationPlan ??????? profile.medications ???????
+            medication_summary = self._recorded_medication_summary(context, profile)
+            if not medication_summary:
+                response_data["content"] = "???????????????????????????????????"
             else:
-                med_list = ", ".join([f"{m['name']} ({m['time']})" for m in meds])
-                response_data["content"] = f"按记录，您现在要吃的是{med_list}。您吃了吗？"
-                
+                response_data["content"] = f"??????????????{medication_summary}???????????????????????????????????????"
+
         elif analysis.get("intent") == "symptom_report":
-            # 记录症状并给出建议
+            # 记录不适，不做诊断或医疗处置建议
             symptom = analysis.get("symptom", "未知不适")
             symptom_text = self._format_symptom(symptom)
-            response_data["content"] = f"知道了，您这是{symptom_text}。先歇一会儿，量量血压或体温；要是还难受，我帮您联系家里人。"
+            response_data["content"] = f"我先帮您记下：{symptom_text}。咱们先慢一点，我可以帮您通知家里人一起确认情况。"
             response_data["risk_level"] = "medium"
             # 更新画像中的健康状况
-            self.rag_helper.update_user_profile("health_condition", symptom)
+            self._record_health_condition(symptom, context)
             
         else:
             # 一般健康咨询
@@ -76,11 +83,95 @@ class MedicalAgent:
                 memory_context
             )
 
-        return response_data
+        return self._finalize_response(response_data)
+
+    def _record_health_condition(self, symptom: Any, context: Dict[str, Any]) -> None:
+        user_context_service = getattr(self, "user_context_service", None)
+        if user_context_service is not None:
+            user_id = str(context.get("user_id") or "user_001").strip() or "user_001"
+            user_context_service.update_profile(user_id, {"health_condition": symptom})
+            return
+        self.rag_helper.update_user_profile("health_condition", symptom)
+
+    def _recorded_medication_summary(self, context: Dict[str, Any], profile: Dict[str, Any]) -> str:
+        user_id = str(context.get("user_id") or "user_001").strip() or "user_001"
+        service = getattr(self, "medication_reminder_service", None)
+        if service is not None:
+            try:
+                plans = service.list_plans(user_id, include_inactive=False)
+            except TypeError:
+                plans = service.list_plans(user_id)
+            except Exception as exc:
+                logger.warning(f"Failed to read medication plans for {user_id}: {exc}")
+                plans = []
+            if plans:
+                formatted = [
+                    self._format_medication_plan_for_reply(plan)
+                    for plan in plans
+                ]
+                formatted = [item for item in formatted if item]
+                if formatted:
+                    return "?".join(formatted)
+
+        meds = profile.get("medications", []) if isinstance(profile, dict) else []
+        if not meds:
+            return ""
+        parts = []
+        for item in meds:
+            if isinstance(item, dict):
+                name = str(item.get("name") or "").strip()
+                time_text = str(item.get("time") or item.get("schedule") or "").strip()
+                if name and time_text:
+                    parts.append(f"{name}?{time_text}?")
+                elif name:
+                    parts.append(name)
+            elif str(item).strip():
+                parts.append(str(item).strip())
+        return "?".join(parts)
+
+    def _format_medication_plan_for_reply(self, plan: Any) -> str:
+        name = str(self._field_value(plan, "name") or "").strip()
+        if not name:
+            return ""
+        pieces = [name]
+        dosage = str(self._field_value(plan, "dosage_text") or "").strip()
+        instruction = str(self._field_value(plan, "instruction_text") or "").strip()
+        schedule_text = self._schedule_text(self._field_value(plan, "schedule", default=[]))
+        if dosage:
+            pieces.append(dosage)
+        if instruction:
+            pieces.append(instruction)
+        if schedule_text:
+            pieces.append(f"???{schedule_text}")
+        return "?".join(pieces)
+
+    def _field_value(self, obj: Any, field: str, default: Any = "") -> Any:
+        if isinstance(obj, dict):
+            return obj.get(field, default)
+        return getattr(obj, field, default)
+
+    def _schedule_text(self, schedule: Any) -> str:
+        if not schedule:
+            return ""
+        items = []
+        for entry in schedule:
+            if isinstance(entry, dict):
+                time_text = str(entry.get("time") or "").strip()
+                label = str(entry.get("label") or "").strip()
+            else:
+                time_text = str(getattr(entry, "time", "") or "").strip()
+                label = str(getattr(entry, "label", "") or "").strip()
+            if time_text and label:
+                items.append(f"{label} {time_text}")
+            elif time_text:
+                items.append(time_text)
+            elif label:
+                items.append(label)
+        return "?".join(items)
 
     async def _analyze_health_intent(self, text: str) -> Dict:
         prompt = ChatPromptTemplate.from_template("""
-        你是一个医疗助手。请分析老人的输入，提取意图和关键信息。
+        你是健康关怀意图分类器。只做意图与紧急程度识别，不生成诊断、治疗或用药建议。
         输入: {text}
         
         输出 JSON (无 Markdown):
@@ -95,16 +186,17 @@ class MedicalAgent:
 
     async def _generate_health_advice(self, text: str, profile: Dict[str, Any], recent_history_text: str, memory_context: str) -> str:
         prompt = ChatPromptTemplate.from_template("""
-        你是家庭医生助手。请用**口语**回答老人的健康问题。
+        你是健康关怀记录与已知医嘱提醒助手。请用**口语**回应老人的健康相关问题。
         老人画像: {profile}
         最近对话: {recent_history_text}
         补充记忆: {memory_context}
 
         要求：
         1. 默认用2到3句话回答，说明可以稍微完整一点，最多不超过4句话。
-        2. 专业但通俗（不要拽术语）。
-        3. 语气亲切、关怀。
-        4. 不要列点，不要用Markdown，直接说。
+        2. 不做诊断命名，不说“您这是X病”。
+        3. 不给出就医建议、治疗处置、用药调整、加减药或补服建议。
+        4. 如果涉及用药，只能基于已记录信息，并使用“按记录 / 已记录”的表述。
+        5. 语气亲切、关怀；不列点，不用Markdown，直接说。
         
         问题: {text}
         回答:
@@ -116,7 +208,17 @@ class MedicalAgent:
             "recent_history_text": recent_history_text,
             "memory_context": memory_context or "暂无"
         })
-        return response.content
+        return self.safety_policy.sanitize_response(response.content)
+
+    def _finalize_response(self, response_data: Dict[str, Any]) -> Dict[str, Any]:
+        finalized = dict(response_data or {})
+        content = finalized.get("content", "")
+        if isinstance(content, str):
+            finalized["content"] = self.safety_policy.sanitize_response(
+                content,
+                risk_tier=finalized.get("risk_level")
+            )
+        return finalized
 
     def _format_symptom(self, symptom: Any) -> str:
         if isinstance(symptom, list):
@@ -137,13 +239,13 @@ class MedicalAgent:
     def _build_emergency_response(self, input_text: str, level: str) -> Dict[str, Any]:
         tool_output = self._trigger_emergency_contact(input_text, level)
         logger.warning(f"EMERGENCY ALERT: {input_text}")
-        return {
+        return self._finalize_response({
             "content": "您先别慌，我已经马上联系家里人了。您先尽量别乱动，慢慢呼吸，我陪着您。",
             "action": "alert_family",
             "risk_level": "high",
             "sos": bool(tool_output.get("trigger_sos", True)),
             "emergency_contact_result": tool_output
-        }
+        })
 
     def _trigger_emergency_contact(self, reason: str, level: str) -> Dict[str, Any]:
         try:
@@ -162,24 +264,19 @@ class MedicalAgent:
             "status": "fallback",
             "trigger_sos": True,
             "level": level,
-            "reason": reason,
+            "reason_summary": "elder_reported_emergency",
+            "family_message": f"老人发出紧急求助：{reason}",
+            "community_message": "有老人发出紧急求助，请社区值守端关注。",
+            "community_raw_quote_visible": False,
             "actions": []
         }
 
     def check_medication_reminder(self):
         """
-        定时任务调用的方法 (需外部调度器支持)
-        检查当前时间是否需要提醒吃药
+        Backward-compatible no-op.
+
+        Medication timing is owned by MedicationReminderService and
+        TimedEventService. MedicalAgent should not independently schedule,
+        infer, or emit medication reminders from wall-clock time.
         """
-        # 简单示例逻辑
-        now_hour = datetime.now().hour
-        meds = self.rag_helper.get_user_profile().get("medications", [])
-        reminders = []
-        for med in meds:
-            # 假设 med['time'] 是 "08:00" 格式
-            if str(now_hour) in med.get('time', ''):
-                reminders.append(med['name'])
-        
-        if reminders:
-            return f"爷爷/奶奶，到时间吃药啦：{', '.join(reminders)}。温水送服哦！"
         return None

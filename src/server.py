@@ -3,15 +3,16 @@ import os
 import json
 import time
 import uuid
+import inspect
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Dict, Any, List
+from typing import AsyncGenerator, Dict, Any, List, Optional
 
 # 确保能找到 src 包
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.append(ROOT_DIR)
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -20,12 +21,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import uvicorn
 
-from src.orchestrator import SystemOrchestrator
 from src.config import Config
+from src.orchestrator import SystemOrchestrator
+from src.schemas.actions import ActionCompleteRequest
+from src.schemas.community import (
+    CommunityActivityCreateRequest,
+    CommunityAnnouncementCreateRequest,
+)
+from src.schemas.family import (
+    FamilyChatRequest,
+    FamilyMessageCreateRequest,
+    FamilyPolicyUpdateRequest,
+    QuietMessageConsentRequest,
+)
+from src.schemas.music_library import MusicLibrarySyncRequest
+from src.schemas.photo_library import PhotoLibrarySyncRequest
+from src.schemas.timed_events import MedicationPlan, TimedEventAck
 from src.utils.logger import logger
 
 # 全局 Orchestrator 实例
-orchestrator: SystemOrchestrator = None
+orchestrator: Optional[SystemOrchestrator] = None
 
 
 class ChatRequest(BaseModel):
@@ -46,6 +61,24 @@ def error_response(status_code: int, message: str, request_id: str = None, detai
         payload["details"] = details
     return JSONResponse(status_code=status_code, content=payload)
 
+
+def model_to_dict(model: Any) -> Dict[str, Any]:
+    if hasattr(model, "model_dump"):
+        return model.model_dump(mode="json")
+    if hasattr(model, "dict"):
+        return model.dict()
+    return dict(model or {})
+
+
+def parse_optional_datetime(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid datetime: {value}") from exc
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -65,7 +98,8 @@ async def lifespan(app: FastAPI):
     yield
     
     logger.info("正在关闭系统资源...")
-    # 这里可以添加清理逻辑
+    if orchestrator:
+        await orchestrator.background_planner_service.shutdown()
     logger.info("系统已关闭。")
 
 app = FastAPI(
@@ -126,7 +160,14 @@ async def chat_endpoint(payload: ChatRequest):
     context = dict(payload.context or {})
 
     if payload.user_id:
-        context.setdefault("user_id", payload.user_id)
+        payload_user_id = str(payload.user_id).strip()
+        context_user_id = str(context.get("user_id") or "").strip()
+        if context_user_id and context_user_id != payload_user_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Conflicting user_id between request body and context",
+            )
+        context["user_id"] = payload_user_id
 
     if not message:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
@@ -151,7 +192,7 @@ async def chat_endpoint(payload: ChatRequest):
     )
 
 @app.post("/api/profile")
-async def update_profile(request: Request):
+async def update_profile(request: Request, user_id: str = Query("user_001")):
     """
     更新用户画像接口
     支持批量更新字段，如 name, health_condition, family_members, preferences 等
@@ -167,17 +208,25 @@ async def update_profile(request: Request):
     try:
         # 遍历所有字段并更新
         # rag_helper.update_user_profile 会处理文件读写和列表合并逻辑
-        for key, value in profile.items():
+        if not isinstance(profile, dict):
+            raise HTTPException(status_code=400, detail="Profile body must be an object")
+        elder_user_id = profile.pop("user_id", None) or user_id
+        updated_profile = orchestrator.user_context_service.update_profile(elder_user_id, profile)
+        return {
+            "status": "success",
+            "message": "Profile updated successfully",
+            "user_id": elder_user_id,
+            "updated_keys": list(profile.keys()),
+            "profile": updated_profile
+        }
             # 这里调用同步方法，如果是大量写入可能需要 run_in_executor，但画像更新通常量小
-            orchestrator.emotional_agent.rag_helper.update_user_profile(key, value)
             
-        return {"status": "success", "message": "Profile updated successfully", "updated_keys": list(profile.keys())}
     except Exception as e:
         logger.error(f"更新画像失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/profile")
-async def get_profile():
+async def get_profile(user_id: str = Query("user_001")):
     """
     获取当前用户画像
     """
@@ -185,7 +234,7 @@ async def get_profile():
         raise HTTPException(status_code=503, detail="System not initialized")
         
     try:
-        return orchestrator.emotional_agent.rag_helper.get_user_profile()
+        return orchestrator.user_context_service.get_profile(user_id)
     except Exception as e:
         logger.error(f"获取画像失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -203,7 +252,7 @@ async def health_check():
     }
 
 @app.get("/api/system_status")
-async def get_system_status():
+async def get_system_status(user_id: str = Query("user_001")):
     """
     获取系统结构化信息：包含最近的路由决策、用户画像、对话历史、工具调用记录等。
     """
@@ -214,16 +263,10 @@ async def get_system_status():
         rag = orchestrator.emotional_agent.rag_helper
         
         # 1. 用户画像
-        profile = rag.get_user_profile()
+        profile = orchestrator.user_context_service.get_profile(user_id)
         
         # 2. 简要对话记录 (最近 6 条)
-        history = []
-        try:
-            with open(rag.memory_file, "r", encoding="utf-8") as f:
-                full_history = json.load(f)
-                history = full_history[-6:] if len(full_history) >= 6 else full_history
-        except Exception:
-            pass
+        history = orchestrator.user_context_service.get_recent_history(user_id, limit=6)
             
         # 3. 路由与工具决策分析
         system_state = getattr(orchestrator, "last_system_state", {})
@@ -244,15 +287,536 @@ async def get_system_status():
         logger.error(f"获取系统状态失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/api/planner/status")
+async def get_planner_status(elder_user_id: str = Query("user_001")):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    status = orchestrator.background_planner_service.get_status(elder_user_id)
+    care_plan = orchestrator.care_plan_service.get_plan(elder_user_id)
+    return {
+        "status": "success",
+        "data": {
+            "planner": model_to_dict(status),
+            "care_plan": model_to_dict(care_plan),
+        },
+    }
+
+@app.get("/api/medication/plans")
+async def get_medication_plans(
+    elder_user_id: str = Query("user_001"),
+    include_inactive: bool = Query(False),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    plans = orchestrator.medication_reminder_service.list_plans(
+        elder_user_id,
+        include_inactive=include_inactive,
+    )
+    return {"status": "success", "data": [model_to_dict(plan) for plan in plans]}
+
+
+@app.post("/api/medication/plans")
+async def create_medication_plan(request: Request):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Medication plan body must be an object")
+
+    body.setdefault("medication_id", f"med_{uuid.uuid4().hex}")
+    plan = MedicationPlan(**body)
+    saved = orchestrator.medication_reminder_service.upsert_plan(plan)
+    return {"status": "success", "data": model_to_dict(saved)}
+
+
+@app.patch("/api/medication/plans/{medication_id}")
+async def patch_medication_plan(
+    medication_id: str,
+    request: Request,
+    elder_user_id: str = Query("user_001"),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Medication plan body must be an object")
+
+    plans = orchestrator.medication_reminder_service.list_plans(
+        elder_user_id,
+        include_inactive=True,
+    )
+    existing = next((plan for plan in plans if plan.medication_id == medication_id), None)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Medication plan not found")
+
+    merged = model_to_dict(existing)
+    merged.update(body)
+    merged["medication_id"] = medication_id
+    merged["elder_user_id"] = elder_user_id
+    plan = MedicationPlan(**merged)
+    saved = orchestrator.medication_reminder_service.upsert_plan(plan)
+    return {"status": "success", "data": model_to_dict(saved)}
+
+
+@app.get("/api/timed_events/due")
+async def get_due_timed_events(
+    elder_user_id: str = Query("user_001"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    events = orchestrator.get_due_timed_events(
+        elder_user_id,
+        now=parse_optional_datetime(now),
+    )
+    return {"status": "success", "data": [orchestrator.format_timed_event_response(event) for event in events]}
+
+
+@app.post("/api/timed_events/{event_id}/ack")
+async def acknowledge_timed_event(
+    event_id: str,
+    request: Request,
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Timed event ack body must be an object")
+
+    ack = TimedEventAck(**body)
+    try:
+        result = orchestrator.acknowledge_timed_event(
+            event_id,
+            ack,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"status": "success", "data": result}
+
+
+@app.post("/api/action_complete")
+async def complete_action(payload: ActionCompleteRequest):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        result = orchestrator.complete_action(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    data = dict(result)
+    data["session"] = model_to_dict(data["session"])
+    return {"status": "success", "data": data}
+
+
+@app.post("/api/photo_library/sync")
+async def sync_photo_library(payload: PhotoLibrarySyncRequest):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        result = orchestrator.photo_library_service.sync_photos(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": result}
+
+
+@app.post("/api/photo_library/import")
+async def import_photo_library(
+    request: Request,
+    elder_user_id: str = Query("user_001"),
+    file_name: str = Query("photo_library.json"),
+    source: str = Query("frontend_album"),
+    sync_mode: str = Query("upsert"),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    content = await request.body()
+    try:
+        result = orchestrator.photo_library_service.import_library_bytes(
+            elder_user_id,
+            content,
+            file_name=file_name,
+            source=source,
+            sync_mode=sync_mode,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": result}
+
+
+@app.get("/api/photo_library/photos")
+async def list_photo_library(
+    elder_user_id: str = Query("user_001"),
+    query: str = Query(""),
+    limit: int = Query(20),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    photos = orchestrator.photo_library_service.search_photos(
+        elder_user_id,
+        query,
+        limit=limit,
+    )
+    return {"status": "success", "data": [model_to_dict(photo) for photo in photos]}
+
+
+@app.post("/api/photo_library/caption_pending")
+async def caption_pending_photo_library(
+    request: Request,
+    elder_user_id: str = Query("user_001"),
+    limit: int = Query(5),
+    force: bool = Query(False),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    body = {}
+    try:
+        body = await request.json()
+        if not isinstance(body, dict):
+            body = {}
+    except Exception:
+        body = {}
+    try:
+        result = orchestrator.photo_library_service.caption_pending(
+            elder_user_id,
+            photo_ids=body.get("photo_ids"),
+            limit=limit,
+            force=force,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": model_to_dict(result)}
+
+
+@app.post("/api/music/library")
+async def sync_music_library(payload: MusicLibrarySyncRequest):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        result = orchestrator.music_library_service.sync_library(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": result}
+
+
+@app.get("/api/music/library")
+async def list_music_library(
+    elder_user_id: str = Query("user_001"),
+    include_inactive: bool = Query(False),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    songs = orchestrator.music_library_service.list_records(
+        elder_user_id,
+        include_inactive=include_inactive,
+    )
+    return {"status": "success", "data": [model_to_dict(song) for song in songs]}
+
+
+@app.get("/api/music/library/match")
+async def match_music_library(
+    elder_user_id: str = Query("user_001"),
+    query: str = Query(""),
+    limit: int = Query(1),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    result = orchestrator.music_library_service.match_song(
+        elder_user_id,
+        query,
+        limit=limit,
+    )
+    return {"status": "success", "data": result}
+
+
+@app.get("/api/family/agent_policy")
+async def get_family_agent_policy(
+    elder_user_id: str = Query("user_001"),
+    child_user_id: str = Query("child_001"),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    policy = orchestrator.family_policy_service.get_policy(elder_user_id, child_user_id)
+    return {"status": "success", "data": model_to_dict(policy)}
+
+
+@app.post("/api/family/agent_policy")
+async def update_family_agent_policy(payload: FamilyPolicyUpdateRequest):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    policy = orchestrator.family_policy_service.update_policy_from_payload(
+        payload.elder_user_id,
+        payload.child_user_id,
+        payload.policy,
+    )
+    return {"status": "success", "data": model_to_dict(policy)}
+
+
+@app.get("/api/family/topics/available")
+async def get_available_family_topics(
+    elder_user_id: str = Query("user_001"),
+    child_user_id: str = Query("child_001"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    topics = orchestrator.family_policy_service.available_topics(
+        elder_user_id,
+        child_user_id,
+        now=parse_optional_datetime(now),
+    )
+    return {"status": "success", "data": [model_to_dict(topic) for topic in topics]}
+
+
+@app.post("/api/family/topics/{topic_id}/consume")
+async def consume_family_topic(
+    topic_id: str,
+    elder_user_id: str = Query("user_001"),
+    child_user_id: str = Query("child_001"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        topic = orchestrator.family_policy_service.consume_topic(
+            elder_user_id,
+            child_user_id,
+            topic_id,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": model_to_dict(topic)}
+
+
+@app.post("/api/family/messages")
+async def create_family_message(payload: FamilyMessageCreateRequest):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    message = orchestrator.create_family_message(payload)
+    data = model_to_dict(message)
+    data.pop("content", None)
+    return {"status": "success", "data": data}
+
+
+@app.get("/api/family/alerts")
+async def get_family_alerts(
+    elder_user_id: str = Query("user_001"),
+    child_user_id: str = Query("child_001"),
+    limit: int = Query(20),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    alerts = orchestrator.family_policy_service.list_family_alerts(
+        elder_user_id,
+        limit=limit,
+    )
+    return {
+        "status": "success",
+        "data": {
+            "elder_user_id": elder_user_id,
+            "child_user_id": child_user_id,
+            "alerts": [model_to_dict(alert) for alert in alerts],
+        },
+    }
+
+
+@app.get("/api/family/elder_summary")
+async def get_family_elder_summary(
+    elder_user_id: str = Query("user_001"),
+    child_user_id: str = Query("child_001"),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    summary = orchestrator.get_family_elder_summary(elder_user_id, child_user_id)
+    return {"status": "success", "data": summary}
+
+
+@app.post("/api/family/chat")
+async def family_chat_endpoint(payload: FamilyChatRequest):
+    message = (payload.message or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    async def event_generator():
+        try:
+            async for event_data in orchestrator.process_family_chat_stream(payload):
+                yield f"data: {event_data}\n\n"
+        except Exception as e:
+            logger.error(f"family chat stream failed: {e}")
+            error_json = json.dumps({"type": "error", "data": str(e)}, ensure_ascii=False)
+            yield f"data: {error_json}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/api/elder/pending_messages")
+async def get_elder_pending_messages(
+    elder_user_id: str = Query("user_001"),
+    risk_tier: str = Query("safe"),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    messages = orchestrator.get_elder_pending_messages(elder_user_id, risk_tier=risk_tier)
+    return {"status": "success", "data": {"messages": messages}}
+
+
+@app.post("/api/elder/messages/{message_id}/consent")
+async def consent_to_elder_message(message_id: str, payload: QuietMessageConsentRequest):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        result = orchestrator.consent_to_elder_message(message_id, payload)
+    except ValueError as exc:
+        message = str(exc)
+        status_code = 404 if "not found" in message.lower() else 400
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+    data = dict(result)
+    data["message"] = model_to_dict(data["message"])
+    if data["status"] != "accepted":
+        data["message"].pop("content", None)
+    return {"status": "success", "data": data}
+
+
+@app.post("/api/community/announcements")
+async def create_community_announcement(
+    payload: CommunityAnnouncementCreateRequest,
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        announcement = orchestrator.create_community_announcement(
+            payload,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": model_to_dict(announcement)}
+
+
+@app.get("/api/community/announcements")
+async def get_community_announcements(
+    community_id: str = Query("community_001"),
+    only_active: bool = Query(True),
+    now: Optional[str] = Query(None),
+    limit: Optional[int] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    announcements = orchestrator.list_community_announcements(
+        community_id,
+        only_active=only_active,
+        now=parse_optional_datetime(now),
+        limit=limit,
+    )
+    return {"status": "success", "data": [model_to_dict(item) for item in announcements]}
+
+
+@app.post("/api/community/activities")
+async def create_community_activity(
+    payload: CommunityActivityCreateRequest,
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        activity = orchestrator.create_community_activity(
+            payload,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": model_to_dict(activity)}
+
+
+@app.get("/api/community/activities")
+async def get_community_activities(
+    community_id: str = Query("community_001"),
+    only_active: bool = Query(True),
+    now: Optional[str] = Query(None),
+    limit: Optional[int] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    activities = orchestrator.list_community_activities(
+        community_id,
+        only_active=only_active,
+        now=parse_optional_datetime(now),
+        limit=limit,
+    )
+    return {"status": "success", "data": [model_to_dict(item) for item in activities]}
+
+
+@app.get("/api/community/crisis_alerts")
+async def get_community_crisis_alerts(
+    elder_user_id: str = Query("user_001"),
+    limit: int = Query(20),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    alerts = orchestrator.list_community_crisis_alerts(elder_user_id, limit=limit)
+    return {"status": "success", "data": {"elder_user_id": elder_user_id, "alerts": alerts}}
+
+
 @app.get("/api/proactive_check")
-async def check_proactive_event():
+async def check_proactive_event(user_id: str = Query("user_001"), now: Optional[str] = Query(None)):
     """
     前端定期调用此接口 (如每分钟)，检查是否有主动提问生成
     """
     if not orchestrator:
         return JSONResponse(status_code=503, content={"error": "System not ready"})
         
-    event_json = await orchestrator.check_and_generate_proactive_event()
+    event_json = await orchestrator.check_and_generate_proactive_event(
+        user_id=user_id,
+        now=parse_optional_datetime(now),
+    )
     if event_json:
         # event_json is already a JSON string from create_event
         # Parse it to return as normal JSON response
@@ -265,7 +829,7 @@ async def check_proactive_event():
     return JSONResponse(content={"type": "none"})
 
 @app.post("/api/reset_profile")
-async def reset_profile():
+async def reset_profile(user_id: str = Query("user_001")):
     """
     仅清空用户画像（保留聊天历史和向量库等其他记忆）
     """
@@ -273,29 +837,107 @@ async def reset_profile():
         raise HTTPException(status_code=503, detail="System not initialized")
     
     try:
-        rag = orchestrator.emotional_agent.rag_helper
-        default_profile = rag.reset_profile()
-        return {"status": "success", "message": "User profile has been reset to default."}
+        if hasattr(orchestrator, "user_context_service"):
+            default_profile = orchestrator.user_context_service.reset_profile(user_id)
+        else:
+            default_profile = orchestrator.emotional_agent.rag_helper.reset_profile()
+        return {
+            "status": "success",
+            "message": "User profile has been reset to default.",
+            "user_id": user_id,
+            "profile": default_profile
+        }
     except Exception as e:
         logger.error(f"重置画像失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/reset_memory")
-async def reset_memory():
+async def reset_memory(
+    user_id: str = Query("user_001"),
+    include_legacy_rag: bool = Query(False),
+):
     """
-    一键清空所有记忆（短期、中期、生活事件）和用户画像
-    慎用！操作不可逆。
+    Reset one user's current DataStore state.
+
+    Legacy RAG memory is global in the current codebase. It is not reset unless
+    include_legacy_rag=true is explicitly provided.
     """
     if not orchestrator:
         raise HTTPException(status_code=503, detail="System not initialized")
-    
+
     try:
-        rag = orchestrator.emotional_agent.rag_helper
-        rag.reset_all_memory()
-        return {"status": "success", "message": "All memories and profiles have been reset."}
-        
+        user_id = getattr(user_id, "default", user_id)
+        include_legacy_rag = getattr(include_legacy_rag, "default", include_legacy_rag)
+        if isinstance(include_legacy_rag, str):
+            include_legacy_rag = include_legacy_rag.strip().lower() in {"1", "true", "yes", "on"}
+        else:
+            include_legacy_rag = bool(include_legacy_rag)
+
+        if hasattr(orchestrator, "reset_user_state"):
+            result = orchestrator.reset_user_state(
+                user_id,
+                include_legacy_rag=include_legacy_rag,
+            )
+            if inspect.isawaitable(result):
+                result = await result
+        else:
+            normalized_user_id = user_id
+            user_context = getattr(orchestrator, "user_context_service", None)
+            if user_context is not None and hasattr(user_context, "normalize_user_id"):
+                normalized_user_id = user_context.normalize_user_id(user_id)
+
+            data_store = getattr(orchestrator, "data_store", None)
+            if data_store is None or not hasattr(data_store, "reset_user_state"):
+                if not include_legacy_rag:
+                    raise RuntimeError("Current orchestrator does not expose DataStore reset")
+                rag = getattr(getattr(orchestrator, "emotional_agent", None), "rag_helper", None)
+                if rag is None or not hasattr(rag, "reset_all_memory"):
+                    raise RuntimeError("Current orchestrator does not expose DataStore or legacy RAG reset")
+                result = {
+                    "user_id": normalized_user_id,
+                    "data_store": None,
+                    "planner": None,
+                    "legacy_rag": {
+                        "requested": True,
+                        "scope": "global",
+                        "result": rag.reset_all_memory(),
+                    },
+                }
+                return {
+                    "status": "success",
+                    "message": "User state has been reset.",
+                    "user_id": result.get("user_id", user_id),
+                    "data": result,
+                }
+
+            result = {
+                "user_id": normalized_user_id,
+                "data_store": data_store.reset_user_state(normalized_user_id),
+                "planner": None,
+                "legacy_rag": {
+                    "requested": include_legacy_rag,
+                    "scope": "not_touched",
+                    "result": None,
+                },
+            }
+            if include_legacy_rag:
+                rag = getattr(getattr(orchestrator, "emotional_agent", None), "rag_helper", None)
+                if rag is not None and hasattr(rag, "reset_all_memory"):
+                    result["legacy_rag"] = {
+                        "requested": True,
+                        "scope": "global",
+                        "result": rag.reset_all_memory(),
+                    }
+
+        return {
+            "status": "success",
+            "message": "User state has been reset.",
+            "user_id": result.get("user_id", user_id),
+            "data": result,
+        }
+
     except Exception as e:
-        logger.error(f"重置记忆失败: {e}")
+        logger.error(f"Reset memory failed: {e}")
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
 
 if __name__ == "__main__":

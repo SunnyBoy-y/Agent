@@ -5,8 +5,9 @@ from src.utils.logger import logger
 from src.utils.rag_helper import RAGHelper
 
 class ProactiveAgent:
-    def __init__(self):
-        self.rag_helper = RAGHelper()
+    def __init__(self, user_context_service=None):
+        self.user_context_service = user_context_service
+        self.rag_helper = None if user_context_service else RAGHelper()
 
         # 主动关怀节奏：空闲 15 秒后开始触发，之后每隔 15 秒可再次触发一次
         self.idle_threshold_seconds = 15
@@ -19,7 +20,7 @@ class ProactiveAgent:
         self.interest_keywords = ["听戏", "戏", "京剧", "锁麟囊", "邓丽君", "音乐", "练字", "养花", "下棋"]
         self.daily_life_keywords = ["吃饭", "做饭", "散步", "买菜", "公园", "今天", "刚刚", "忙啥"]
 
-    async def check_and_generate(self) -> Optional[Dict]:
+    async def check_and_generate(self, user_id: str = "user_001") -> Optional[Dict]:
         """
         检查是否需要主动交互，如果需要，生成交互内容
         返回: {
@@ -27,7 +28,8 @@ class ProactiveAgent:
             "target_agent": "medical_agent" (后续处理该回复的理想 Agent)
         } 或 None
         """
-        status = self.rag_helper.get_agent_status()
+        user_id = self._normalize_user_id(user_id)
+        status = self._get_agent_status(user_id)
         if not status:
             return None
 
@@ -45,26 +47,65 @@ class ProactiveAgent:
             logger.info(f"Recent proactive ping exists ({proactive_gap:.1f}s), skipping duplicate prompt.")
             return None
 
-        profile = self.rag_helper.get_user_profile()
-        recent_history = self.rag_helper.get_recent_history(limit=12)
-        emotion_trend = self.rag_helper.get_emotion_trend()
+        profile = self._get_profile(user_id)
+        recent_history = self._get_recent_history(user_id, limit=12)
+        emotion_trend = self._get_emotion_trend(user_id)
 
         strategy = self._select_strategy(profile, recent_history, emotion_trend, status)
         content = self._render_greeting(strategy, profile, status)
 
         logger.info(f"Proactive Agent selected strategy: {strategy}")
 
-        self.rag_helper.add_memory(
+        self._add_memory(
+            user_id,
             user_input=f"[系统判定老人沉默 {int(idle_seconds)} 秒，触发主动关怀/{strategy['reason']}]",
             agent_response=content
         )
-        self.rag_helper.update_proactive_status(strategy["domain"], content)
+        self._update_proactive_status(user_id, strategy["domain"], content)
 
         return {
+            "user_id": user_id,
             "content": content,
             "target_agent": f"{strategy['domain']}_agent",
             "scene": strategy["reason"]
         }
+
+    def _normalize_user_id(self, user_id: Optional[str]) -> str:
+        if self.user_context_service:
+            return self.user_context_service.normalize_user_id(user_id)
+        return str(user_id or "user_001").strip() or "user_001"
+
+    def _get_agent_status(self, user_id: str) -> Dict[str, Any]:
+        if self.user_context_service:
+            return self.user_context_service.get_agent_status(user_id)
+        return self.rag_helper.get_agent_status()
+
+    def _get_profile(self, user_id: str) -> Dict[str, Any]:
+        if self.user_context_service:
+            return self.user_context_service.get_profile(user_id)
+        return self.rag_helper.get_user_profile()
+
+    def _get_recent_history(self, user_id: str, limit: int) -> List[Dict[str, Any]]:
+        if self.user_context_service:
+            return self.user_context_service.get_recent_history(user_id, limit=limit)
+        return self.rag_helper.get_recent_history(limit=limit)
+
+    def _get_emotion_trend(self, user_id: str) -> str:
+        if self.user_context_service:
+            return self.user_context_service.get_emotion_trend(user_id)
+        return self.rag_helper.get_emotion_trend()
+
+    def _add_memory(self, user_id: str, user_input: str, agent_response: str) -> None:
+        if self.user_context_service:
+            self.user_context_service.add_memory(user_id, user_input, agent_response)
+            return
+        self.rag_helper.add_memory(user_input, agent_response)
+
+    def _update_proactive_status(self, user_id: str, domain: str, content: str) -> None:
+        if self.user_context_service:
+            self.user_context_service.update_proactive_status(user_id, domain, content)
+            return
+        self.rag_helper.update_proactive_status(domain, content)
 
     def _parse_time(self, value: Optional[str], fallback: Optional[str] = None) -> datetime:
         raw = value or fallback or datetime.now().strftime("%Y-%m-%d %H:%M:%S")

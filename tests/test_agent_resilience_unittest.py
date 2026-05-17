@@ -144,7 +144,7 @@ class ServerEndpointTests(unittest.TestCase):
         self.assertEqual(result["status"], "success")
         self.assertEqual(calls["profile"], 1)
 
-    def test_reset_memory_endpoint_uses_rag_helper_method(self):
+    def test_reset_memory_endpoint_can_explicitly_use_legacy_rag_helper_method(self):
         calls = {"memory": 0}
 
         class FakeRag:
@@ -156,9 +156,10 @@ class ServerEndpointTests(unittest.TestCase):
             emotional_agent=SimpleNamespace(rag_helper=FakeRag())
         )
 
-        result = asyncio.run(reset_memory())
+        result = asyncio.run(reset_memory(user_id="user_001", include_legacy_rag=True))
         self.assertEqual(result["status"], "success")
         self.assertEqual(calls["memory"], 1)
+        self.assertEqual(result["data"]["legacy_rag"]["scope"], "global")
 
 
 if __name__ == "__main__":

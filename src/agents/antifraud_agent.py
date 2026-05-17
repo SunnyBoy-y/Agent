@@ -4,6 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langgraph.graph import StateGraph, END
 from src.config import Config
+from src.policies.safety_policy import SafetyPolicy
 import json
 
 # Define the state
@@ -14,7 +15,8 @@ class AntiFraudAgentState(TypedDict):
     intervention: Dict[str, Any] # action_to_senior, action_to_family, action_to_community
 
 class AntiFraudAgent:
-    def __init__(self):
+    def __init__(self, safety_policy: Optional[SafetyPolicy] = None):
+        self.safety_policy = safety_policy or SafetyPolicy()
         self.llm = ChatOpenAI(
             openai_api_key=Config.OPENAI_API_KEY,
             openai_api_base=Config.OPENAI_API_BASE,
@@ -111,7 +113,7 @@ class AntiFraudAgent:
             "context_hint": context_hint
         })
         
-        return {"intervention": result}
+        return {"intervention": self._sanitize_intervention(result)}
 
     def run(self, input_text: str, context: Dict[str, Any] = None):
         if context is None:
@@ -152,13 +154,14 @@ class AntiFraudAgent:
             ensure_ascii=False
         )
 
-    async def arun(self, input_text: str, context: Dict[str, Any] = None):
-        if context is None:
-            context = {}
-        initial_state = {
-            "input_text": input_text,
-            "context": context,
-            "analysis": {},
-            "intervention": {}
-        }
-        return await self.workflow.ainvoke(initial_state)
+    def _sanitize_intervention(self, intervention: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply the shared client-facing safety policy to anti-fraud output."""
+        if not isinstance(intervention, dict):
+            return {}
+
+        cleaned = dict(intervention)
+        for field in ("action_to_senior", "action_to_family", "action_to_community"):
+            value = cleaned.get(field)
+            if isinstance(value, str) and value.strip():
+                cleaned[field] = self.safety_policy.sanitize_response(value)
+        return cleaned

@@ -4,11 +4,12 @@ from typing import Any, Dict, List
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from src.config import Config
+from src.policies.safety_policy import SafetyPolicy
 from src.utils.logger import logger
 from src.utils.rag_helper import RAGHelper
 
 class MentalHealthAgent:
-    def __init__(self):
+    def __init__(self, safety_policy: SafetyPolicy | None = None):
         self.llm = ChatOpenAI(
             openai_api_key=Config.OPENAI_API_KEY,
             openai_api_base=Config.OPENAI_API_BASE,
@@ -16,6 +17,7 @@ class MentalHealthAgent:
             temperature=0.5
         )
         self.rag_helper = RAGHelper()
+        self.safety_policy = safety_policy or SafetyPolicy()
         self.anxiety_keywords = [
             "焦虑", "心慌", "发慌", "睡不着", "失眠", "烦", "烦躁", "紧张", "担心", "害怕"
         ]
@@ -50,13 +52,13 @@ class MentalHealthAgent:
         if intervention_mode == "anxiety":
             response = self._build_anxiety_guidance(context)
             return {
-                "content": response,
+                "content": self._safe_text(response, "medium"),
                 "action": "recommend_community_activity",
                 "risk_level": "medium"
             }
 
         prompt = ChatPromptTemplate.from_template("""
-        你是一位专业的心理咨询师，专为老年人提供心理支持。
+        你是一位陪伴型心理支持助手，专为老年人提供情绪陪伴与生活化支持。
         
         老人的状态: {input_text}
         当前视觉情绪: {visual_emotion}
@@ -72,6 +74,7 @@ class MentalHealthAgent:
         3. 引导老人关注当下的微小幸福。
         4. 如果老人感到孤独，提供一个具体、可马上执行的建议（如给老友打个电话、晒晒太阳、去社区活动室坐坐）。
         5. 语气温和、缓慢，像一位耐心倾听的晚辈兼专家。
+        6. 不做“抑郁症/焦虑症/双相”等诊断命名，不给医疗建议，不暴露内部推理或Thought。
         
         不要使用过于专业的术语，要生活化。
         默认控制在2到3句话，安抚和建议都可以稍微展开一点。
@@ -91,7 +94,7 @@ class MentalHealthAgent:
         })
         
         return {
-            "content": response.content,
+            "content": self._safe_text(response.content, "medium"),
             "action": "comfort",
             "risk_level": "medium" # 心理咨询通常意味着有一定困扰
         }
@@ -126,13 +129,16 @@ class MentalHealthAgent:
         community_text = self._get_community_activity_text(context)
         return f"您先别急，我陪您缓一缓，先把这口气慢慢顺下来。{community_text}"
 
+    def _safe_text(self, text: str, risk_tier: str = "medium") -> str:
+        return self.safety_policy.sanitize_response(text or "", risk_tier=risk_tier)
+
     def _get_community_activity_text(self, context: Dict[str, Any]) -> str:
         community_activities = context.get("community_activities") or []
         if isinstance(community_activities, list) and community_activities:
             first = community_activities[0]
             if isinstance(first, dict):
-                name = first.get("name", "社区活动")
-                time = first.get("time")
+                name = first.get("title") or first.get("name", "社区活动")
+                time = first.get("time_text") or first.get("time")
                 location = first.get("location")
                 parts: List[str] = []
                 if time:

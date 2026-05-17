@@ -733,8 +733,8 @@ GET /api/family/elder_summary
 检查命令：
 
 ```powershell
-python -m py_compile src\agents\antifraud_agent.py src\agents\medical_agent.py src\agents\mental_health_agent.py src\agents\emotional_agent.py src\tools\professional_skills.py
-python -m pytest tests\test_agent_resilience_unittest.py tests\test_safety_policy.py -q
+python -m py_compile src\agents\antifraud_agent.py src\agents\medical_agent.py src\agents\mental_health_agent.py src\agents\emotional_agent.py src\tools\professional_skills.py src\orchestrator.py tests\test_agent_safety_convergence.py
+python -m pytest tests\test_agent_safety_convergence.py tests\test_safety_policy.py tests\test_agent_resilience_unittest.py tests\test_prompt.py -q
 ```
 
 预期结果：
@@ -747,6 +747,17 @@ python -m pytest tests\test_agent_resilience_unittest.py tests\test_safety_polic
 
 - Agent 绕过 SafetyPolicy。
 - MedicalAgent 仍直接给医疗建议。
+
+
+Completion record (2026-05-16):
+
+- `AntiFraudAgent` duplicate `arun` removed.
+- `MedicalAgent` no longer owns medication timer scheduling; prompt and output are converged through `SafetyPolicy`.
+- `MentalHealthAgent` is now companion-style support and uses `SafetyPolicy`.
+- `emotional_agent` raw streaming chunks are buffered and sanitized before token emission.
+- `ProfessionalSkills.emergency_contact` now splits family/community/SOS output and desensitizes community text.
+- Target 16 focused regression: `23 passed`.
+- Full regression: `110 passed in 13.12s`, environment: `conda activate agent`.
 
 ## 推荐执行顺序
 
@@ -769,3 +780,73 @@ python -m pytest tests\test_agent_resilience_unittest.py tests\test_safety_polic
 17. Target 16：Agent 清理与提示词收敛。
 
 这个顺序的关键点是：先把“安全、数据、时间、风险”四个基础打稳，再接后台 ReAct 和多端接口。这样前台快速问答不会被后台 Agent、定时扫描或 LLM 复核拖慢。
+
+
+## Target 17: sentence-level safe emotional streaming
+
+Status: complete.
+
+Purpose:
+- Preserve Target16 safety while improving perceived latency for `emotional_agent` output.
+
+Implemented:
+- `src/orchestrator.py` buffers raw emotional stream chunks and flushes only completed sentence segments after `SafetyPolicy` sanitization.
+- Sentence boundaries: Chinese/ASCII sentence punctuation (`!`, `?`, semicolon, Chinese full-stop/exclamation/question, and newline).
+- `crisis` risk tier remains fully buffered so the crisis-safe prefix is emitted once.
+- Final model output is still sanitized and used as the reconciliation path.
+
+Tests:
+- `tests/test_agent_safety_convergence.py::test_emotional_stream_flushes_completed_safe_sentences`
+- `tests/test_agent_safety_convergence.py::test_emotional_crisis_stream_stays_fully_buffered`
+
+Verification:
+- Focused regression: `16 passed in 1.81s`.
+- Full regression: `112 passed in 10.48s`.
+- Environment: `conda activate agent`.
+
+## Target 18: photo semantic metadata and retrieval contract
+
+Status: complete.
+
+Purpose:
+- Make album/photo retrieval capable of using descriptions/tags when they exist without pretending the current system can infer image content by itself.
+
+Planned scope:
+- Reinspect existing photo routes, tool functions, and storage shape.
+- Normalize metadata fields: `description`, `tags`, `people`, `location`, `time_text`, `caption_source`.
+- Keep request-time chat free of lazy vision inference; background enrichment may write captions later.
+- Add deterministic fixture tests for semantic and fallback retrieval.
+
+
+Execution order update:
+18. Target 17: sentence-level safe emotional streaming.
+19. Target 18: photo semantic metadata and retrieval contract.
+
+
+Target 18 completion record:
+- `search_family_photos` now uses existing semantic photo metadata for local ranking and output.
+- No request-time vision inference was added.
+- Focused regression: `17 passed in 1.29s`.
+- Full regression: `115 passed in 11.24s`.
+- Environment: `conda activate agent`.
+
+## Target 19: background-agent action expansion
+
+Status: recommended next target.
+
+Purpose:
+- Convert background-agent outputs into explicit action contracts with idempotency, approval/consent requirements, and elder/family/community visibility boundaries.
+
+
+Target 19 completion record:
+- Planner queued actions now include explicit action-contract fields.
+- Background planner persists action contracts and creates idempotent frontend action sessions for scheduled music/story actions.
+- Focused regression: `12 passed in 2.34s`.
+- Full regression after Target19: `118 passed in 8.42s`.
+
+Target 20 completion record:
+- Medical symptom-report persistence and `record_health_complaint` now write through typed UserContext/Profile/DataStore services when available.
+- `record_health_complaint` no longer imports or instantiates `RAGHelper`.
+- Focused regression: `22 passed in 1.43s`.
+- Final full regression: `120 passed in 8.90s`.
+- The Post-Target16 plan is complete; draft a new plan before further scope.

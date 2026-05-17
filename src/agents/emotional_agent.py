@@ -238,6 +238,37 @@ class EmotionalConnectionAgent:
             return "random"
         return "recent"
         
+
+
+    def _bind_session_context_to_tool_calls(
+        self,
+        tool_calls: List[Dict[str, Any]],
+        session_context: Optional[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Bind runtime session context to tool calls before ToolNode executes them.
+
+        The LLM should not be responsible for knowing the active elder user id.
+        record_health_complaint must write to the active session user instead of
+        falling back to its historical default user_001.
+        """
+        user_id = str((session_context or {}).get("user_id") or "").strip()
+        bound_calls: List[Dict[str, Any]] = []
+        for call in tool_calls:
+            if not isinstance(call, dict):
+                continue
+            item = dict(call)
+            args = item.get("args")
+            args = dict(args) if isinstance(args, dict) else {}
+            if item.get("name") == "record_health_complaint" and user_id:
+                args.setdefault("elder_user_id", user_id)
+            elif item.get("name") == "search_family_photos" and user_id:
+                args.setdefault("username", user_id)
+            elif item.get("name") == "play_music" and user_id:
+                args.setdefault("elder_user_id", user_id)
+            item["args"] = args
+            bound_calls.append(item)
+        return bound_calls
+
     def _build_workflow(self):
         # 1. 定义节点
         async def analyze_inputs(state: AgentState):
@@ -378,6 +409,10 @@ class EmotionalConnectionAgent:
             business_tool_names = {t.name for t in self.business_tools}
             all_tool_calls = list(getattr(last_message, "tool_calls", None) or [])
             business_tool_calls = [tc for tc in all_tool_calls if tc.get("name") in business_tool_names]
+            business_tool_calls = self._bind_session_context_to_tool_calls(
+                business_tool_calls,
+                state.get("session_context") or {},
+            )
 
             if business_tool_calls:
                 # 临时替换 tool_calls 为纯业务工具，避免 ToolNode 收到无法处理的 EmotionalStateUpdate
@@ -393,7 +428,12 @@ class EmotionalConnectionAgent:
                 photo_tool = next((t for t in self.business_tools if getattr(t, "name", "") == "search_family_photos"), None)
                 if photo_tool is not None:
                     keyword = state.get("forced_photo_keyword") or "recent"
-                    output = await photo_tool.ainvoke({"keyword": keyword})
+                    session_context = state.get("session_context") or {}
+                    user_id = str(session_context.get("user_id") or "").strip()
+                    payload = {"keyword": keyword}
+                    if user_id:
+                        payload["username"] = user_id
+                    output = await photo_tool.ainvoke(payload)
                     try:
                         tool_messages = [ToolMessage(content=str(output), tool_call_id="photo_force", name="search_family_photos")]
                     except TypeError:

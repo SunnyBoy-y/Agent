@@ -41,7 +41,10 @@ class InterestAgent:
 
         if self._is_music_request(input_text):
             normalized_query = self._normalize_music_query(input_text)
-            music_result = self._trigger_music(normalized_query)
+            music_result = self._trigger_music(
+                normalized_query,
+                elder_user_id=context.get("user_id"),
+            )
             return {
                 "content": "好，我这就给您放上。您先听着，要是想换一首，跟我说一声就行。",
                 "action": "play_music",
@@ -88,9 +91,12 @@ class InterestAgent:
         text = (input_text or "").strip()
         return re.sub(r"[。！？!?,，]+$", "", text) or "来一首舒缓的歌"
 
-    def _trigger_music(self, query: str) -> dict:
+    def _trigger_music(self, query: str, elder_user_id: str = None) -> dict:
         try:
-            result = ProfessionalSkills.play_music.invoke({"query": query})
+            payload = {"query": query}
+            if elder_user_id:
+                payload["elder_user_id"] = elder_user_id
+            result = ProfessionalSkills.play_music.invoke(payload)
             if isinstance(result, str):
                 return json.loads(result)
             if isinstance(result, dict):
