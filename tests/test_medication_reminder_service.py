@@ -45,6 +45,24 @@ def test_due_window_returns_single_medication_due_event():
         assert duplicate == []
 
 
+def test_medication_photo_fields_are_carried_into_reminder_payload():
+    temp_dir, service = _service()
+    with temp_dir:
+        plan = _plan()
+        plan.medicine_photo_url = "http://java-file.test/api/file/med_photo/download"
+        plan.medicine_photo_thumbnail_url = "http://java-file.test/api/file/med_photo/thumbnail"
+        plan.medicine_photo_file_uuid = "med_photo"
+        plan.medicine_photo_caption = "white pill bottle"
+        service.upsert_plan(plan)
+
+        reminder = service.scan_due_reminders("elder_001", datetime(2026, 5, 16, 8, 0, tzinfo=TZ))[0]
+
+        assert reminder.payload["medicine_photo_url"].endswith("/download")
+        assert reminder.payload["medicine_photo_thumbnail_url"].endswith("/thumbnail")
+        assert reminder.payload["medicine_photo_file_uuid"] == "med_photo"
+        assert reminder.payload["medicine_photo_caption"] == "white pill bottle"
+
+
 def test_overdue_returns_once_after_due_window():
     temp_dir, service = _service()
     with temp_dir:

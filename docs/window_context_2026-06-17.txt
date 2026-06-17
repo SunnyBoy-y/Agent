@@ -1,0 +1,404 @@
+窗口上下文提取 - 2026-06-17
+
+说明
+----
+这是当前 Codex 窗口里与项目开发相关的上下文交接稿，方便后续继续开发。
+未包含隐藏系统/开发者提示的逐字内容，也未读取或复制 auth.json、config.toml、.env 等敏感配置内容。
+
+
+一、当前工作目录与环境
+--------------------
+工作目录:
+c:\Users\13600\Desktop\realtimeASR\111\Agent
+
+系统与运行环境:
+- Shell: PowerShell
+- 当前日期: 2026-06-17
+- 时区: Asia/Shanghai
+- 仓库工作区很脏，存在大量已有修改、pycache、数据文件和未跟踪文件。不要随意 revert 或清理无关文件。
+- 用户 IDE 当前打开过:
+  - c:\Users\13600\.codex\config.toml
+  - c:\Users\13600\.codex\auth.json
+  - src/orchestrator.py
+  - data/users/elder_a/user_profile.json
+  - docs/frontend_backend_interface_proposal.md
+
+
+二、用户在本窗口提出过的需求脉络
+------------------------------
+1. chat1 重复回显问题
+   用户截图指出 chat1 回复里重复了用户问题开头，例如用户说“今天心里有点闷，想聊聊天”，模型回复也先重复这句话。
+   目标: 删除 chat1 接口中“重复问题...”的回复。
+
+2. 时间感知但不污染记忆
+   用户要求通过提示词注入让模型感知当前时间、指导现在几点，但时间不进入记忆体系，避免污染上下文。
+
+3. 参考 Hermes 改提示词规范
+   用户要求参考 C:\Users\13600\Desktop\PR\hermes-agent 的提示词规范，保证模型不只是简单回复，而是张弛有度、像真人、记得过去发生的事情、适当提醒。
+
+4. chat1 分层记忆
+   用户要求 chat1 每次传给模型的记忆做分层:
+   - 最近 5 轮滑动窗口保留原文。
+   - 超出的部分补充上文摘要。
+   - 每次给模型的记忆参考 Hermes 编排，确保不忘事。
+
+5. 后台信息处理、事件库、提醒队列、chat2
+   用户进一步提出大需求:
+   - 新增后台的信息处理与保存区域。
+   - chat1 所有对话数据经过后台子 AI 分析后，整理更新画像、消除记忆歧义。
+   - 例如“昨天说‘明天要去看车’”，应解析成明确日期事件: “YYYY-MM-DD，用户 xx 准备去看车”。
+   - 新增信息要逐条拆分。
+   - 插入近期事件库时检查事件冲突、过期事件。
+   - 无法逻辑推理消歧的内容进入提醒队列。
+   - 最高优先级提醒嵌入每次给 LLM 的历史背景，标明“恰当语境提醒”。
+   - 后台检测到提醒已触发后，提醒事件出队。
+   - 提醒队列和事件记录独立存储。
+   - 新增 chat2 接口，服务子女端。
+   - chat2 输入需要包含当前用户与老人的关系 type，例如“妈妈”“爸爸”等，用于 AI 回复时称呼老人。
+   - chat2 维护自己的上下文和记忆，同时可继承 chat1 的部分上下文，继承内容由摘要处理智能体后台处理。
+   - chat1 历史背景里必须写清楚老人个人画像。
+   - 老人画像来自超出 5 轮滑动窗口后对历史记录摘要过程中的提取。
+   - 历史摘要触发条件: 每 5 轮对话触发。
+   - 历史摘要后台并行处理，不阻塞 chat1。
+   - 摘要成功后才影响下一次上下文；失败或未完成不影响当前/下一轮正常上下文，可以临时超过 5 轮。
+   - 摘要提取同时服务于摘要、画像更新、消歧等，可设计多次推理。
+   - chat1 长连接优先实时性。done 只表示第一段话结束；若后台/agent 后续推理出工具调用，如显示照片、给子女发悄悄话，可继续推送。agent 链路真正结束才标志完整一轮结束。
+   - 打断定义: 第 n 轮尚未完整回复，用户点击打断并输入新一轮内容。新一轮上下文应包含已推送内容，并标记“被打断”。参考 Hermes 打断处理。
+   - chat1 服务老人，chat2 服务子女。老人是被照护对象，部分老人数据可共享给子女智能体辅助决策。
+
+6. 用户打断了上一次大需求实现
+   上一轮正在调研和准备实现后台记忆反思/事件库/chat2 时，用户主动中断。
+
+7. 最新需求
+   用户要求: “提取本窗口的所以上下文到txt”。
+
+
+三、此前已经完成的代码改动
+------------------------
+以下改动已在本窗口完成或由前一阶段完成，并经过针对性验证。
+
+1. 修复 chat1 重复用户问题前缀
+   文件:
+   - src/services/response_style_guard.py
+   - src/orchestrator.py
+   - tests/test_response_style_guard.py
+
+   关键点:
+   - 新增 filter_repeated_input_prefix()。
+   - process_chat_stream 在流式首段模型输出时，用 guard 过滤重复用户输入前缀。
+   - 已添加测试覆盖。
+
+2. 重写伴随式 prompt
+   文件:
+   - src/agents/companion_prompt.py
+   - tests/test_companion_prompt.py
+
+   关键点:
+   - 角色名为“小暖”。
+   - 加入时间感知块 current_time_prompt_block()，说明当前北京时间是临时上下文，不可写入长期记忆。
+   - prompt 包含:
+     - 陪伴语气
+     - 张弛有度
+     - 记忆使用规则
+     - 提醒规则
+     - 安全边界
+     - 不要固定短答
+   - 保留/提供函数:
+     - guidance_for_stage()
+     - current_time_prompt_block()
+     - build_companion_system_prompt()
+     - compact_prompt_context()
+     - stage_from_context()
+     - risk_from_context()
+
+3. 时间答案不进入记忆体系
+   文件:
+   - src/services/user_context_service.py
+   - tests/test_user_context_time_sanitization.py
+
+   关键点:
+   - add_memory() 保存 assistant 回复前会调用 _sanitize_history_content(..., user_input=user_input)。
+   - 增加 _is_current_time_query() 和 _redact_current_time_answer()。
+   - 如果用户问当前时间，记忆里保留“当时按当前时间回答过”这一类泛化描述，不落具体时间。
+
+4. chat1 分层上下文
+   文件:
+   - src/services/user_context_service.py
+   - src/orchestrator.py
+   - tests/test_user_context_time_sanitization.py
+
+   关键点:
+   - 新增 CHAT_CONTEXT_SUMMARY_FILE = "chat_context_summary.json"。
+   - 新增 get_layered_chat_context(elder_user_id, recent_turns=5, max_summary_chars=1200)。
+   - 返回结构:
+     - summary: 已存摘要 + 最近窗口之前的历史摘要。
+     - recent_window: 最近 recent_turns * 2 条历史记录。
+     - recent_window_text: 最近窗口格式化文本。
+     - overflow_count。
+     - recent_turns。
+   - add_memory() 中如果历史超过 100 条，会把溢出部分摘要合并到 chat_context_summary.json，然后保留最近 60 条。
+   - 增加辅助方法:
+     - _load_chat_summary()
+     - _save_chat_summary()
+     - _merge_chat_summary()
+     - _join_summary_parts()
+     - _summarize_history_records()
+     - _format_history_records()
+     - _clip_text()
+
+5. chat1 改为使用分层记忆
+   文件:
+   - src/orchestrator.py
+
+   关键点:
+   - process_chat_stream 调用 _get_profile_layered_context_quick()。
+   - chat_context/prompt_payload/debug 信息里写入:
+     - conversation_summary
+     - history_layers
+     - recent_history_text
+     - memory_context
+   - _build_memory_context() 现在支持 conversation_summary。
+   - memory_context 结构接近:
+     <memory-context>
+     [profile]
+     ...
+     [conversation_summary_before_recent_window]
+     ...
+     [recent_dialogue_window_last_5_turns]
+     ...
+     [retrieved_memory]
+     ...
+     </memory-context>
+   - _build_realtime_chat_messages() 的最后一个定义使用分层记忆、老人画像、上文摘要、最近 5 轮原文窗口。
+
+6. fast companion 回复放宽
+   文件:
+   - src/orchestrator.py
+
+   关键点:
+   - 增加/覆盖了后置 _stream_fast_companion_response()。
+   - max_tokens 放到 180。
+   - 提示规则里要求不要固定 1 到 2 句，要根据语境张弛有度。
+
+
+四、验证记录
+------------
+已通过:
+python -m py_compile src\agents\companion_prompt.py src\orchestrator.py src\services\user_context_service.py
+
+已通过:
+pytest tests\test_companion_prompt.py tests\test_user_context_time_sanitization.py tests\test_response_style_guard.py
+
+结果:
+7 passed in 0.22s
+
+注意:
+全量旧测试可能因本地缺少 langchain_core/langchain_openai 等依赖失败，不代表上述新增测试失败。
+
+
+五、已观察到的代码结构
+--------------------
+1. src/server.py
+   - ChatRequest:
+     - message
+     - user_id
+     - context
+   - /api/chat1 和 /api/chat 共用 chat_endpoint。
+   - chat_endpoint 默认走 orchestrator.process_chat_stream()。
+   - mode=agent/full/full_agent 或 force_agent 时走完整 agent 路径。
+   - 已存在 /api/family/chat，使用 FamilyChatRequest。
+
+2. src/orchestrator.py
+   - process_chat_stream(): chat1 老人端低延迟流式路径。
+   - _finalize_realtime_chat_turn(): 首段回复后后台做评估、更新状态、保存记忆。
+   - _build_memory_context(): 拼接 profile/summary/recent window/semantic memory。
+   - process_family_chat_stream(): 目前只是转发给 family_agent。
+   - _get_profile_layered_context_quick(): 读取 profile + layered history，超时则后台吸收任务结果。
+
+3. src/services/data_store.py
+   - DataStore 已提供 JSON/JSONL 存取:
+     - read_user_json()
+     - write_user_json()
+     - append_user_jsonl()
+     - read_user_jsonl()
+   - 会限制路径在 data/users/{id} 下，适合新增 recent_events.json、reminder_queue.json、shared_elder_context.json、chat2_history.json 等。
+
+4. src/services/user_context_service.py
+   - 当前负责 chat_history、chat_context_summary、emotion_log、agent_status、profile 的快速读写。
+   - 已实现分层历史接口。
+
+5. src/schemas/family.py
+   - FamilyChatRequest 当前字段:
+     - elder_user_id
+     - child_user_id
+     - message
+     - context
+   - 还没有 chat2 的 relation/type 字段。
+
+6. src/agents/family_agent.py
+   - 当前是 deterministic family-side SSE agent。
+   - 它不依赖实时 LLM，回答来自 family-visible context。
+   - 但当前文件里中文文案在控制台显示有明显编码乱码。
+   - 如果实现新 chat2，建议新增干净的 Chat2Request/Chat2 服务，不直接复用这些乱码回复模板。
+
+7. src/services/family_context_service.py
+   - 已有 build_elder_summary()、build_family_chat_context()、add_family_turn()。
+   - 可作为 chat2 的部分数据来源，但 user 新需求中 chat2 还需要继承 chat1 后台摘要出的共享上下文。
+
+8. Hermes 参考
+   - 已经搜索过 C:\Users\13600\Desktop\PR\hermes-agent 的 interrupt 相关内容。
+   - Hermes 打断核心思路:
+     - 运行中监控 interrupt queue。
+     - 用户新输入触发 interrupt。
+     - 当前已生成内容带 interrupted 标记。
+     - 后续新消息重新进入处理队列。
+   - 适配到本项目 HTTP/SSE 形态时，比较可行的落点是:
+     - Orchestrator 维护 active_chat_turns。
+     - 记录 turn_id、streamed_text、agent_done 状态。
+     - 前端打断按钮传 interrupt_previous_turn_id / interrupted_turn_id。
+     - 新一轮上下文拼入已推送文本并标记“被打断”。
+
+
+六、上一次未完成的大需求建议实现方案
+----------------------------------
+建议先落一个可运行的 MVP，然后逐步把 deterministic 提取替换为真正的子 AI 多轮推理。
+
+1. 新增服务: src/services/memory_reflection_service.py
+   职责:
+   - 维护近期事件库 recent_events.json。
+   - 维护提醒队列 reminder_queue.json。
+   - 维护给 chat2 使用的共享老人上下文 shared_elder_context.json。
+   - 后台处理 chat1 每轮对话，不阻塞 chat1 首段回复。
+
+2. 推荐接口
+   - process_after_chat_turn(elder_user_id, turn_id, user_input, assistant_response, context=None, now=None)
+   - get_prompt_context(elder_user_id, limit=1)
+   - get_shared_elder_context(elder_user_id)
+   - mark_triggered_reminders(elder_user_id, text, turn_id)
+
+3. 事件提取 MVP
+   - 用规则/正则先支持:
+     - 今天、明天、后天、昨天
+     - 下周一到周日
+     - X月X日
+     - 关键词: 看车、体检、看医生、复诊、买菜、吃药、打电话、见朋友等
+   - 相对日期以当前北京时间日期为基准解析。
+   - 存储 event:
+     - id
+     - elder_user_id
+     - title
+     - event_date
+     - status: active / expired / conflict / needs_clarification / completed
+     - source_turn_id
+     - evidence
+     - created_at
+     - updated_at
+
+4. 冲突/过期处理
+   - event_date < today: 标记 expired。
+   - 同一天相近 title 或语义相近: 可先简单标记 conflict。
+   - 无法解析日期但有明显计划/提醒意图: 进入 reminder_queue，status=needs_clarification。
+
+5. 提醒队列
+   - reminder:
+     - id
+     - elder_user_id
+     - event_id
+     - title
+     - remind_after / event_date
+     - priority
+     - status: pending / triggered / dismissed
+     - guidance: “在恰当语境自然提醒，不要突兀打断”
+   - get_prompt_context() 返回最高优先级 pending reminder。
+   - chat1 每次构造 memory_context 时嵌入 top reminder。
+   - _finalize_realtime_chat_turn() 后判断 user_input + assistant_response 是否已经自然提醒，若触发则出队。
+
+6. chat1 接入点
+   - 在 process_chat_stream() 读取 profile/history_layers 后，同步快速读取 memory_reflection_service.get_prompt_context(user_id)。
+   - 将 top reminder 写入 chat_context 和 prompt_payload。
+   - _build_memory_context() 增加 reminder_context 参数，并渲染为 [pending_reminder]。
+   - 在 _finalize_realtime_chat_turn() 保存 add_memory() 后，schedule/调用 memory_reflection_service.process_after_chat_turn()。
+
+7. chat2 接口
+   - 新增 Chat2Request，字段建议:
+     - elder_user_id: str
+     - child_user_id: str
+     - type: str = "家人"
+     - message: str
+     - context: Dict[str, Any] = {}
+   - 新增 /api/chat2。
+   - chat2 使用 SSE 格式，与 chat1/family chat 保持 data: json。
+   - chat2 自己存上下文，例如:
+     - users/{elder_user_id}/family/{child_user_id}/chat2_history.json
+   - chat2 读取:
+     - memory_reflection_service.get_shared_elder_context(elder_user_id)
+     - family_context_service.build_family_chat_context(elder_user_id, child_user_id)
+   - 回复时用 relation/type 称呼老人，例如“你妈妈”“你爸爸”。
+   - 不把 chat2 对话写入 chat1 老人记忆。
+
+8. chat1 done / agent_done
+   - 当前 chat1 会发:
+     - step realtime_chat running
+     - token
+     - step realtime_chat done
+     - done stop
+   - 用户新需求提出 done 只代表第一段话结束，后续工具/后台动作可继续推送。
+   - MVP 可先新增更明确事件:
+     - first_response_done
+     - agent_done
+   - 为兼容前端，旧 done 事件要谨慎调整。可保留 done=stop，同时新增 agent_done；或先只在后台状态里记录 agent_done，避免破坏现有 UI。
+
+9. 打断 MVP
+   - active_chat_turns: dict[user_id] -> state
+   - state:
+     - turn_id
+     - streamed_text
+     - first_response_done
+     - agent_done
+     - interrupted
+   - process_chat_stream() 开始时检查 context:
+     - interrupt_previous_turn_id
+     - interrupted_turn_id
+     - interrupted=true
+   - 若命中活跃未 agent_done 的旧 turn:
+     - 标记旧 turn interrupted。
+     - 新一轮 prompt 的 recent_history_text 或 interrupt_context 增加:
+       “上一轮小暖已经说出：...（被打断）”
+   - 注意: 由于 HTTP/SSE 每个请求独立，真正取消旧 stream 还需要前端断开旧连接或后端协作取消任务。
+
+
+七、需要小心的点
+----------------
+1. 不要读取或输出敏感文件内容
+   - c:\Users\13600\.codex\auth.json
+   - c:\Users\13600\.codex\config.toml
+   - .env
+
+2. src/orchestrator.py 里目前有多个重复的 _build_realtime_chat_messages 定义
+   - Python 使用最后一个定义。
+   - 这是历史补丁造成的技术债，但当前可编译。
+   - 后续如继续改，优先定位最后一个定义，或专门做一次清理。
+
+3. PowerShell 控制台显示部分中文为乱码
+   - 文件可以编译，测试通过。
+   - 不要仅凭控制台显示判断文件已损坏。
+
+4. git status 很脏
+   - 大量修改和未跟踪文件不一定是本窗口产生。
+   - 不要执行 git reset --hard、git checkout -- 等破坏性命令。
+
+5. 后续测试建议
+   - 改完新服务后先跑:
+     python -m py_compile src\orchestrator.py src\server.py src\services\user_context_service.py src\services\memory_reflection_service.py
+   - 再跑新增小测试:
+     pytest tests\test_memory_reflection_service.py tests\test_chat2_api.py
+   - 保留已通过的三组测试:
+     pytest tests\test_companion_prompt.py tests\test_user_context_time_sanitization.py tests\test_response_style_guard.py
+
+
+八、当前请求完成状态
+------------------
+最新请求是“提取本窗口的所以上下文到txt”。
+本文件即为提取结果:
+docs/window_context_2026-06-17.txt
+

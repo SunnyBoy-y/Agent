@@ -7,8 +7,10 @@ from typing import Any, Dict, List, Optional, TypeVar
 from src.schemas.community import (
     CommunityActivity,
     CommunityActivityCreateRequest,
+    CommunityActivityUpdateRequest,
     CommunityAnnouncement,
     CommunityAnnouncementCreateRequest,
+    CommunityAnnouncementUpdateRequest,
 )
 from src.schemas.relay import RelayMessage
 from src.services.data_store import DataStore
@@ -91,6 +93,63 @@ class CommunityService:
             items = [item for item in items if self._announcement_is_consumable(item, now)]
         return self._limit(self._sort_items(items), limit)
 
+    def update_announcement(
+        self,
+        community_id: str,
+        announcement_id: str,
+        request: CommunityAnnouncementUpdateRequest,
+        *,
+        now: Optional[datetime] = None,
+    ) -> CommunityAnnouncement:
+        community_id = self._normalize_id(community_id, "community_id")
+        announcement_id = self._normalize_id(announcement_id, "announcement_id")
+        now = self._normalize_datetime(now or utc_now())
+        with self._lock_for(community_id):
+            items = self._load_announcements(community_id)
+            for idx, item in enumerate(items):
+                if item.id != announcement_id:
+                    continue
+                updates = self._model_to_dict(request)
+                updates = {key: value for key, value in updates.items() if value is not None}
+                if "title" in updates:
+                    item.title = self._normalize_text(updates["title"], "title")
+                if "content" in updates:
+                    item.content = self._normalize_text(updates["content"], "content")
+                if "tags" in updates:
+                    item.tags = self._normalize_tags(updates["tags"])
+                if "valid_from" in updates:
+                    item.valid_from = self._parse_datetime(updates["valid_from"])
+                if "valid_until" in updates:
+                    item.valid_until = self._parse_datetime(updates["valid_until"])
+                if "priority" in updates:
+                    item.priority = int(updates["priority"])
+                if "status" in updates:
+                    item.status = updates["status"]
+                item.updated_at = now
+                item.status = self._announcement_status_at(item, now)
+                items[idx] = item
+                self._save_announcements(community_id, items)
+                self.store.append_jsonl(
+                    self._community_path(community_id, self.ANNOUNCEMENTS_AUDIT_FILE),
+                    {"event": "updated", "item": item},
+                )
+                return item
+        raise ValueError(f"Community announcement not found: {announcement_id}")
+
+    def delete_announcement(
+        self,
+        community_id: str,
+        announcement_id: str,
+        *,
+        now: Optional[datetime] = None,
+    ) -> CommunityAnnouncement:
+        return self.update_announcement(
+            community_id,
+            announcement_id,
+            CommunityAnnouncementUpdateRequest(status="cancelled"),
+            now=now,
+        )
+
     def create_activity(
         self,
         request: CommunityActivityCreateRequest,
@@ -142,6 +201,65 @@ class CommunityService:
             items = [item for item in items if self._activity_is_consumable(item, now)]
         return self._limit(self._sort_items(items), limit)
 
+    def update_activity(
+        self,
+        community_id: str,
+        activity_id: str,
+        request: CommunityActivityUpdateRequest,
+        *,
+        now: Optional[datetime] = None,
+    ) -> CommunityActivity:
+        community_id = self._normalize_id(community_id, "community_id")
+        activity_id = self._normalize_id(activity_id, "activity_id")
+        now = self._normalize_datetime(now or utc_now())
+        with self._lock_for(community_id):
+            items = self._load_activities(community_id)
+            for idx, item in enumerate(items):
+                if item.id != activity_id:
+                    continue
+                updates = self._model_to_dict(request)
+                updates = {key: value for key, value in updates.items() if value is not None}
+                if "title" in updates:
+                    item.title = self._normalize_text(updates["title"], "title")
+                if "content" in updates:
+                    item.content = str(updates["content"] or "").strip()
+                if "time_text" in updates:
+                    item.time_text = str(updates["time_text"] or "").strip()
+                if "location" in updates:
+                    item.location = str(updates["location"] or "").strip()
+                if "tags" in updates:
+                    item.tags = self._normalize_tags(updates["tags"])
+                if "valid_until" in updates:
+                    item.valid_until = self._parse_datetime(updates["valid_until"])
+                if "priority" in updates:
+                    item.priority = int(updates["priority"])
+                if "status" in updates:
+                    item.status = updates["status"]
+                item.updated_at = now
+                item.status = self._activity_status_at(item, now)
+                items[idx] = item
+                self._save_activities(community_id, items)
+                self.store.append_jsonl(
+                    self._community_path(community_id, self.ACTIVITIES_AUDIT_FILE),
+                    {"event": "updated", "item": item},
+                )
+                return item
+        raise ValueError(f"Community activity not found: {activity_id}")
+
+    def delete_activity(
+        self,
+        community_id: str,
+        activity_id: str,
+        *,
+        now: Optional[datetime] = None,
+    ) -> CommunityActivity:
+        return self.update_activity(
+            community_id,
+            activity_id,
+            CommunityActivityUpdateRequest(status="cancelled"),
+            now=now,
+        )
+
     def list_crisis_alerts(
         self,
         elder_user_id: str,
@@ -156,6 +274,34 @@ class CommunityService:
         ]
         selected = crisis_messages[-max(limit, 0):]
         return [self._community_safe_alert(message) for message in selected]
+
+    def list_crisis_alerts_by_community(
+        self,
+        community_id: str,
+        *,
+        group_by: str = "elder",
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        community_id = self._normalize_id(community_id, "community_id")
+        all_alerts: List[Dict[str, Any]] = []
+        for elder_user_id in self.store.list_user_ids():
+            for message in self.relay_message_service.list_messages(elder_user_id, target="community"):
+                if message.risk_tier != "crisis" and message.display_type != "sos":
+                    continue
+                payload = message.payload or {}
+                message_community_id = payload.get("community_id") or "community_001"
+                if message_community_id != community_id:
+                    continue
+                all_alerts.append(self._community_safe_alert(message))
+
+        all_alerts = self._sort_alerts(all_alerts)[: max(limit, 0)]
+        return {
+            "community_id": community_id,
+            "group_by": group_by,
+            "alerts": all_alerts,
+            "groups": self._group_crisis_alerts(all_alerts, group_by),
+            "total": len(all_alerts),
+        }
 
     def _refresh_announcement_statuses(
         self,
@@ -250,6 +396,50 @@ class CommunityService:
             return [self._sanitize_community_payload(item) for item in value]
         return value
 
+    def _sort_alerts(self, alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        def sort_key(alert: Dict[str, Any]) -> str:
+            return str(alert.get("updated_at") or alert.get("created_at") or "")
+
+        return sorted(alerts, key=sort_key, reverse=True)
+
+    def _group_crisis_alerts(self, alerts: List[Dict[str, Any]], group_by: str) -> List[Dict[str, Any]]:
+        if group_by not in {"elder", "event", "owner"}:
+            group_by = "elder"
+        groups: Dict[str, Dict[str, Any]] = {}
+        for alert in alerts:
+            payload = alert.get("payload") or {}
+            if group_by == "event":
+                key = str(payload.get("assessment_id") or alert.get("id") or "unknown_event")
+            elif group_by == "owner":
+                key = str(
+                    payload.get("owner_id")
+                    or payload.get("assignee_id")
+                    or payload.get("responsible_user_id")
+                    or "unassigned"
+                )
+            else:
+                key = str(alert.get("elder_user_id") or "unknown_elder")
+            group = groups.setdefault(
+                key,
+                {
+                    "group_key": key,
+                    "group_by": group_by,
+                    "alert_count": 0,
+                    "latest_updated_at": None,
+                    "alerts": [],
+                },
+            )
+            group["alert_count"] += 1
+            group["alerts"].append(alert)
+            updated_at = alert.get("updated_at") or alert.get("created_at")
+            if updated_at and (group["latest_updated_at"] is None or str(updated_at) > str(group["latest_updated_at"])):
+                group["latest_updated_at"] = updated_at
+        return sorted(
+            groups.values(),
+            key=lambda item: (item["alert_count"], str(item.get("latest_updated_at") or "")),
+            reverse=True,
+        )
+
     def _load_announcements(self, community_id: str) -> List[CommunityAnnouncement]:
         raw_items = self.store.read_json(
             self._community_path(community_id, self.ANNOUNCEMENTS_FILE),
@@ -334,6 +524,11 @@ class CommunityService:
         if value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
         return value
+
+    def _parse_datetime(self, value: Any) -> datetime:
+        if isinstance(value, datetime):
+            return self._normalize_datetime(value)
+        return self._normalize_datetime(datetime.fromisoformat(str(value)))
 
     def _model_to_dict(self, model: Any) -> Dict[str, Any]:
         if hasattr(model, "model_dump"):

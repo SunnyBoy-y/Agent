@@ -14,7 +14,7 @@ class ProfileService:
 
     def build_default_profile(self) -> Dict[str, Any]:
         return {
-            "name": "unknown",
+            "name": "",
             "health_condition": [],
             "family_members": [],
             "preferences": [],
@@ -32,6 +32,8 @@ class ProfileService:
 
     def update_profile(self, elder_user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         profile = self.get_profile(elder_user_id)
+        if not isinstance(updates, dict):
+            return copy.deepcopy(profile)
         for key, value in (updates or {}).items():
             if key == "user_id":
                 continue
@@ -59,6 +61,11 @@ class ProfileService:
         for key in ("name", "dialect"):
             if not isinstance(normalized.get(key), str):
                 normalized[key] = self.build_default_profile()[key]
+            else:
+                normalized[key] = normalized[key].strip()
+
+        if normalized.get("name", "").lower() in {"unknown", "none", "null"}:
+            normalized["name"] = ""
 
         return normalized
 

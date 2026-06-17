@@ -105,6 +105,32 @@ def test_create_and_list_medication_plans(monkeypatch, tmp_path):
     assert listed.json()["data"][0]["name"] == "recorded medicine"
 
 
+def test_medication_plan_photo_fields_are_returned_in_due_event(monkeypatch, tmp_path):
+    client, fake = _client(monkeypatch, tmp_path)
+    payload = _plan_payload()
+    payload.update(
+        {
+            "medicine_photo_url": "http://java-file.test/api/file/med_photo/download",
+            "medicine_photo_thumbnail_url": "http://java-file.test/api/file/med_photo/thumbnail",
+            "medicine_photo_file_uuid": "med_photo",
+            "medicine_photo_caption": "white pill bottle",
+        }
+    )
+    fake.medication_reminder_service.upsert_plan(MedicationPlan(**payload))
+
+    response = client.get(
+        "/api/timed_events/due",
+        params={"elder_user_id": "elder_001", "now": "2026-05-16T08:00:00+08:00"},
+    )
+
+    assert response.status_code == 200
+    event_payload = response.json()["data"][0]["payload"]
+    assert event_payload["medicine_photo_url"].endswith("/download")
+    assert event_payload["medicine_photo_thumbnail_url"].endswith("/thumbnail")
+    assert event_payload["medicine_photo_file_uuid"] == "med_photo"
+    assert event_payload["medicine_photo_caption"] == "white pill bottle"
+
+
 def test_due_timed_event_endpoint_returns_display_text(monkeypatch, tmp_path):
     client, fake = _client(monkeypatch, tmp_path)
     fake.medication_reminder_service.upsert_plan(MedicationPlan(**_plan_payload()))

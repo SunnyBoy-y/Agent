@@ -1,13 +1,13 @@
 {
-  "last_user_interaction": "2026-05-13 20:39:16",
-  "last_proactive_time": "2026-05-13 19:28:51",
-  "last_proactive_domain": "interest",
-  "last_proactive_content": "张奶奶，最近还有没有惦记着那段戏呀？要不咱接着聊两句。",
+  "last_user_interaction": "2026-06-17 17:02:39",
+  "last_proactive_time": "2000-01-01 00:00:00",
+  "last_proactive_domain": "",
+  "last_proactive_content": "",
   "agent_last_update": {
-    "medical": "2026-04-22 04:44:45",
-    "daily_life": "2026-04-22 05:09:33",
-    "interest": "2026-05-13 19:28:51",
-    "mental_health": "2026-05-13 19:26:47",
-    "emotional": "2026-05-13 20:39:16"
+    "medical": "2000-01-01 00:00:00",
+    "daily_life": "2000-01-01 00:00:00",
+    "interest": "2000-01-01 00:00:00",
+    "mental_health": "2000-01-01 00:00:00",
+    "emotional": "2000-01-01 00:00:00"
   }
 }

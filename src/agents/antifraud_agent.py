@@ -5,6 +5,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from langgraph.graph import StateGraph, END
 from src.config import Config
 from src.policies.safety_policy import SafetyPolicy
+from src.agents.companion_prompt import build_companion_system_prompt
 import json
 
 # Define the state
@@ -50,7 +51,8 @@ class AntiFraudAgent:
         context_hint = self._build_context_hint(context)
         
         prompt = ChatPromptTemplate.from_template("""
-        你是一位空巢老人的“财产安全卫士”。请分析以下文本，识别是否存在诈骗风险。
+        你是小暖的反诈风险识别阶段，只做分类，不给老人回复。
+        请分析以下文本，识别是否存在诈骗风险；优先看当前输入，其次看上下文。
         
         文本内容: {input_text}
         上下文信息: {context_hint}
@@ -84,27 +86,35 @@ class AntiFraudAgent:
         input_text = state["input_text"]
         context_hint = self._build_context_hint(state.get("context", {}))
         
-        prompt = ChatPromptTemplate.from_template("""
-        根据诈骗风险分析结果，生成给老人的口语预警。
-        
-        输入: {input_text}
-        分析: {analysis}
-        上下文信息: {context_hint}
-        
-        要求：
-        1. "action_to_senior" 必须是**口语**，短促、有力、直接。
-        2. Low风险：温柔提醒（"爷爷，这个听着有点不对劲，咱先挂了问问家里人？"）。
-        3. Medium/High风险：严肃警告（"千万别转账！这是骗子！我马上联系您女儿！"）。
-        4. 默认控制在1到2句话，不要附带额外解释。
-        
-        输出 JSON (无 Markdown):
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                build_companion_system_prompt(
+                    phase="antifraud_intervention",
+                    stage="fraud.pause_and_verify",
+                    risk_tier="medium",
+                    task="根据诈骗风险分析结果，生成给老人的口语预警和必要的家属/社区消息。",
+                    extra_rules=[
+                        "action_to_senior 必须短促、有力、直接，但不要羞辱老人。",
+                        "Low风险：温柔提醒先停一下、问家里人。",
+                        "Medium/High风险：明确让老人不要转账、不要给验证码、不要点链接。",
+                        "默认1到2句话，不附带长解释。",
+                    ],
+                ),
+            ),
+            (
+                "human",
+                "输入: {input_text}\n分析: {analysis}\n上下文信息: {context_hint}\n\n输出 JSON (无 Markdown):\n"
+                """
         {{
             "action_to_senior": "给老人的口语提醒",
             "action_to_family": "给子女的消息 (若无则null)",
             "action_to_community": "给社区的消息 (仅High风险，否则null)",
             "intervention_type": "Interruption/Warning/Blocking/None"
         }}
-        """)
+                """,
+            ),
+        ])
         
         chain = prompt | self.llm | JsonOutputParser()
         result = chain.invoke({
@@ -136,6 +146,87 @@ class AntiFraudAgent:
             "intervention": {}
         }
         return await self.workflow.ainvoke(initial_state)
+
+    async def astream_response(self, input_text: str, context: Dict[str, Any] = None):
+        result = await self.arun(input_text, context)
+        intervention = result.get("intervention", {}) or {}
+        analysis = result.get("analysis", {}) or {}
+        content = intervention.get("action_to_senior", "")
+        risk = self._normalize_risk_level(analysis.get("risk_level", "low"))
+        if not content:
+            content = await self._generate_missing_intervention(
+                input_text=input_text,
+                analysis=analysis,
+                context=context or {},
+                risk=risk,
+            )
+        response_data = {
+            "content": content,
+            "action": "warning" if risk != "safe" else "nod",
+            "risk_level": risk,
+            "family_message": intervention.get("action_to_family"),
+            "community_message": intervention.get("action_to_community"),
+            "analysis": analysis,
+            "intervention": intervention,
+        }
+        for token in self._chunk_text(content):
+            yield {"type": "token", "data": token}
+        yield {"type": "done", "data": response_data}
+
+    async def _generate_missing_intervention(
+        self,
+        *,
+        input_text: str,
+        analysis: Dict[str, Any],
+        context: Dict[str, Any],
+        risk: str,
+    ) -> str:
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                build_companion_system_prompt(
+                    phase="antifraud_missing_intervention",
+                    stage="fraud.pause_and_verify",
+                    risk_tier=risk or "medium",
+                    task="反诈分析已有结果，但干预话术缺失；重新生成老人端一句短提醒。",
+                    extra_rules=[
+                        "只输出1句自然中文。",
+                        "safe 时只做轻提醒，不制造恐慌。",
+                        "low/medium/high 时先让老人暂停转账、验证码、链接等动作，再建议和家人核对。",
+                    ],
+                ),
+            ),
+            (
+                "human",
+                "老人刚才说: {input_text}\n反诈分析: {analysis}\n上下文: {context_hint}\n\n请直接回复老人。",
+            ),
+        ])
+        chain = prompt | self.llm
+        try:
+            response = await chain.ainvoke({
+                "input_text": input_text,
+                "analysis": json.dumps(analysis, ensure_ascii=False),
+                "context_hint": self._build_context_hint(context),
+            })
+            return self.safety_policy.sanitize_response(getattr(response, "content", "") or "")
+        except Exception:
+            return ""
+
+    def _chunk_text(self, text: str, chunk_size: int = 24) -> List[str]:
+        value = str(text or "")
+        return [value[index:index + chunk_size] for index in range(0, len(value), chunk_size)]
+
+    def _normalize_risk_level(self, risk_level: Any) -> str:
+        value = str(risk_level or "").strip().lower()
+        if "high" in value:
+            return "high"
+        if "medium" in value:
+            return "medium"
+        if "low" in value:
+            return "low"
+        if "safe" in value:
+            return "safe"
+        return "low"
 
     def _build_context_hint(self, context: Dict[str, Any]) -> str:
         if not context:

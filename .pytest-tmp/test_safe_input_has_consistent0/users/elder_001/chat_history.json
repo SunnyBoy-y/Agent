@@ -1,0 +1,12 @@
+[
+  {
+    "timestamp": "2026-06-17 15:47:35",
+    "role": "user",
+    "content": "今天天气不错"
+  },
+  {
+    "timestamp": "2026-06-17 15:47:35",
+    "role": "assistant",
+    "content": "今天天气不错……handled by daily_life_agent"
+  }
+]

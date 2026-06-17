@@ -38,3 +38,12 @@ class ActionCompleteRequest(BaseModel):
     interrupt_reason: Optional[str] = None
     finished_at: Optional[datetime] = None
     payload: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ActionConsentRequest(BaseModel):
+    elder_user_id: str
+    accepted: bool
+    text: Optional[str] = None
+    source: str = "unknown"
+    decided_at: Optional[datetime] = None
+    payload: Dict[str, Any] = Field(default_factory=dict)

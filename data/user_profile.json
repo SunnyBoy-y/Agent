@@ -1,19 +1,7 @@
 {
-  "name": "张奶奶",
-  "health_condition": [
-    "失眠",
-    "情绪低落",
-    "不想出门"
-  ],
-  "family_members": [
-    "儿子张伟",
-    "孙子小明"
-  ],
-  "preferences": [
-    "听评剧",
-    "养花",
-    "看老照片"
-  ],
-  "dialect": "东北",
-  "mental_health_tendency": "bipolar"
+  "name": "未知",
+  "health_condition": [],
+  "family_members": [],
+  "preferences": [],
+  "dialect": "unknown"
 }

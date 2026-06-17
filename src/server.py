@@ -4,6 +4,8 @@ import json
 import time
 import uuid
 import inspect
+import asyncio
+import sys
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Dict, Any, List, Optional
 
@@ -18,15 +20,18 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from datetime import datetime
 import uvicorn
 
 from src.config import Config
 from src.orchestrator import SystemOrchestrator
-from src.schemas.actions import ActionCompleteRequest
+from src.schemas.actions import ActionCompleteRequest, ActionConsentRequest
 from src.schemas.community import (
     CommunityActivityCreateRequest,
+    CommunityActivityUpdateRequest,
     CommunityAnnouncementCreateRequest,
+    CommunityAnnouncementUpdateRequest,
 )
 from src.schemas.family import (
     FamilyChatRequest,
@@ -132,6 +137,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+DEBUG_UI_DIR = os.path.join(ROOT_DIR, "frontend")
+if os.path.isdir(DEBUG_UI_DIR):
+    app.mount("/debug", StaticFiles(directory=DEBUG_UI_DIR, html=True), name="debug-ui")
+
 # 请求日志与 ID 中间件
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -151,6 +160,7 @@ async def log_requests(request: Request, call_next):
         logger.error(f"Request failed: {str(e)} [ID: {request_id}] - {process_time:.2f}ms")
         return error_response(500, "Internal Server Error", request_id=request_id)
 
+@app.post("/api/chat1")
 @app.post("/api/chat")
 async def chat_endpoint(payload: ChatRequest):
     """
@@ -177,12 +187,30 @@ async def chat_endpoint(payload: ChatRequest):
 
     async def event_generator():
         try:
-            async for event_data in orchestrator.process_input_stream(message, context):
+            use_full_agent = (
+                str(context.get("mode") or "").strip().lower() in {"agent", "full", "full_agent"}
+                or bool(context.get("force_agent"))
+            )
+            stream_fn = None if use_full_agent else getattr(orchestrator, "process_chat_stream", None)
+            if not callable(stream_fn):
+                stream_fn = orchestrator.process_input_stream
+            async for event_data in stream_fn(message, context):
                 # SSE 格式: data: <json>\n\n
                 yield f"data: {event_data}\n\n"
+                await asyncio.sleep(0)
         except Exception as e:
             logger.error(f"流式生成错误: {e}")
-            error_json = json.dumps({"type": "error", "content": str(e)}, ensure_ascii=False)
+            error_json = json.dumps(
+                {
+                    "type": "error",
+                    "data": {
+                        "code": "api_chat_stream_failed",
+                        "source": "api_chat",
+                        "retryable": True,
+                    },
+                },
+                ensure_ascii=False,
+            )
             yield f"data: {error_json}\n\n"
 
     return StreamingResponse(
@@ -279,6 +307,10 @@ async def get_system_status(user_id: str = Query("user_001")):
                     "routed_agent": system_state.get("last_route", "unknown")
                 },
                 "tool_calls_analysis": system_state.get("tool_calls", []),
+                "llm_inputs": system_state.get("llm_inputs", []),
+                "agent_context": system_state.get("agent_context", {}),
+                "context_snapshot": system_state.get("context_snapshot", {}),
+                "background_tasks": system_state.get("background_tasks", []),
                 "user_profile": profile,
                 "recent_chat_history": history
             }
@@ -419,6 +451,61 @@ async def complete_action(payload: ActionCompleteRequest):
 
     try:
         result = orchestrator.complete_action(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    data = dict(result)
+    data["session"] = model_to_dict(data["session"])
+    return {"status": "success", "data": data}
+
+
+@app.get("/api/actions/pending")
+async def list_pending_actions(
+    elder_user_id: str = Query("user_001"),
+    target_channel: str = Query("frontend"),
+    limit: Optional[int] = Query(None, ge=1),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        actions = orchestrator.list_pending_actions(
+            elder_user_id,
+            target_channel=target_channel,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": [model_to_dict(item) for item in actions]}
+
+
+@app.get("/api/frontend/actions/pending")
+async def list_pending_frontend_actions(
+    elder_user_id: str = Query("user_001"),
+    risk_tier: str = Query("safe"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        actions = orchestrator.list_pending_frontend_actions(
+            elder_user_id,
+            risk_tier=risk_tier,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": actions}
+
+
+@app.post("/api/actions/{action_id}/consent")
+async def consent_action(action_id: str, payload: ActionConsentRequest):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        result = orchestrator.consent_action(action_id, payload)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -756,6 +843,52 @@ async def get_community_announcements(
     return {"status": "success", "data": [model_to_dict(item) for item in announcements]}
 
 
+@app.patch("/api/community/announcements/{announcement_id}")
+async def update_community_announcement(
+    announcement_id: str,
+    payload: CommunityAnnouncementUpdateRequest,
+    community_id: str = Query("community_001"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        announcement = orchestrator.update_community_announcement(
+            community_id,
+            announcement_id,
+            payload,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        message = str(exc)
+        status_code = 404 if "not found" in message.lower() else 400
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return {"status": "success", "data": model_to_dict(announcement)}
+
+
+@app.delete("/api/community/announcements/{announcement_id}")
+async def delete_community_announcement(
+    announcement_id: str,
+    community_id: str = Query("community_001"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        announcement = orchestrator.delete_community_announcement(
+            community_id,
+            announcement_id,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        message = str(exc)
+        status_code = 404 if "not found" in message.lower() else 400
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return {"status": "success", "data": model_to_dict(announcement)}
+
+
 @app.post("/api/community/activities")
 async def create_community_activity(
     payload: CommunityActivityCreateRequest,
@@ -793,16 +926,72 @@ async def get_community_activities(
     return {"status": "success", "data": [model_to_dict(item) for item in activities]}
 
 
+@app.patch("/api/community/activities/{activity_id}")
+async def update_community_activity(
+    activity_id: str,
+    payload: CommunityActivityUpdateRequest,
+    community_id: str = Query("community_001"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        activity = orchestrator.update_community_activity(
+            community_id,
+            activity_id,
+            payload,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        message = str(exc)
+        status_code = 404 if "not found" in message.lower() else 400
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return {"status": "success", "data": model_to_dict(activity)}
+
+
+@app.delete("/api/community/activities/{activity_id}")
+async def delete_community_activity(
+    activity_id: str,
+    community_id: str = Query("community_001"),
+    now: Optional[str] = Query(None),
+):
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="System not initialized")
+
+    try:
+        activity = orchestrator.delete_community_activity(
+            community_id,
+            activity_id,
+            now=parse_optional_datetime(now),
+        )
+    except ValueError as exc:
+        message = str(exc)
+        status_code = 404 if "not found" in message.lower() else 400
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return {"status": "success", "data": model_to_dict(activity)}
+
+
 @app.get("/api/community/crisis_alerts")
 async def get_community_crisis_alerts(
-    elder_user_id: str = Query("user_001"),
+    elder_user_id: Optional[str] = Query(None),
+    community_id: str = Query("community_001"),
+    group_by: str = Query("elder"),
     limit: int = Query(20),
 ):
     if not orchestrator:
         raise HTTPException(status_code=503, detail="System not initialized")
 
-    alerts = orchestrator.list_community_crisis_alerts(elder_user_id, limit=limit)
-    return {"status": "success", "data": {"elder_user_id": elder_user_id, "alerts": alerts}}
+    if elder_user_id:
+        alerts = orchestrator.list_community_crisis_alerts(elder_user_id, limit=limit)
+        return {"status": "success", "data": {"elder_user_id": elder_user_id, "alerts": alerts}}
+
+    data = orchestrator.list_community_crisis_alerts_by_community(
+        community_id,
+        group_by=group_by,
+        limit=limit,
+    )
+    return {"status": "success", "data": data}
 
 
 @app.get("/api/proactive_check")

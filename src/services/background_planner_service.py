@@ -47,6 +47,7 @@ class BackgroundPlannerService:
         self.planner_latest_turn: Dict[str, str] = {}
         self.planner_locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         self.active_jobs: Dict[str, PlannerJob] = {}
+        self.job_contexts: Dict[str, Dict[str, Any]] = {}
         self.all_tasks = set()
         self.task_owners: Dict[asyncio.Task, str] = {}
         self.cancel_reasons: Dict[str, str] = {}
@@ -71,7 +72,11 @@ class BackgroundPlannerService:
                 jobs.append(PlannerJob.parse_obj(row))
         return jobs
 
-    def schedule_from_assessment(self, assessment: MentalRiskAssessment) -> PlannerJob:
+    def schedule_from_assessment(
+        self,
+        assessment: MentalRiskAssessment,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> PlannerJob:
         user_id = assessment.elder_user_id
         old_task = self.planner_tasks.get(user_id)
         old_job = self.active_jobs.get(user_id)
@@ -91,6 +96,7 @@ class BackgroundPlannerService:
             priority=assessment.risk_tier,
         )
         self.active_jobs[user_id] = job
+        self.job_contexts[job.job_id] = self._snapshot_context(context)
         self._append_job(job)
         self._write_status(
             user_id,
@@ -170,7 +176,8 @@ class BackgroundPlannerService:
                 )
 
                 current_plan = self.care_plan_service.get_plan(job.elder_user_id)
-                planner_result = await self._run_rule_planner(job, assessment, current_plan)
+                planner_context = self.job_contexts.get(job.job_id, {})
+                planner_result = await self._run_rule_planner(job, assessment, current_plan, planner_context)
                 job.review_status = planner_result.review.status
                 job.used_fallback = planner_result.used_fallback
 
@@ -220,8 +227,30 @@ class BackgroundPlannerService:
         _job: PlannerJob,
         assessment: MentalRiskAssessment,
         current_plan: CarePlan,
+        context: Optional[Dict[str, Any]] = None,
     ) -> PlannerResult:
-        return await self.planning_agent.arun(assessment, current_plan)
+        return await self.planning_agent.arun(assessment, current_plan, context=context)
+
+    def _snapshot_context(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        if not isinstance(context, dict):
+            return {}
+        keys = {
+            "user_id",
+            "turn_id",
+            "audio_transcript",
+            "risk_assessment",
+            "care_plan",
+            "scene_context",
+            "recent_history",
+            "recent_history_text",
+            "memory_context",
+            "semantic_memory_context",
+            "emotion_trend",
+            "user_profile",
+            "music_library_summary",
+            "photo_library_summary",
+        }
+        return {key: context.get(key) for key in keys if key in context}
 
     def _persist_review_snapshot(
         self,
@@ -347,6 +376,7 @@ class BackgroundPlannerService:
             payload=session_payload,
             post_reply=str((getattr(action, "payload", {}) or {}).get("post_reply") or "") or None,
             idempotency_key=str(contract.get("idempotency_key") or ""),
+            status="pending" if contract["consent_required"] else "started",
         )
 
     def _default_target_channel(self, action: Any) -> str:

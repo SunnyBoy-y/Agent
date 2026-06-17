@@ -115,6 +115,46 @@ class CrisisStreamingEmotionalAgent:
             },
         }
 
+
+class DelayedRealReplyEmotionalAgent:
+    async def astream_run(self, **_kwargs):
+        yield {
+            "event": "on_chain_end",
+            "name": "agent",
+            "data": {
+                "output": {
+                    "messages": [SimpleNamespace(tool_calls=[])]
+                }
+            },
+        }
+        yield {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": FakeChunk("Real answer!")},
+        }
+        yield {
+            "event": "on_chat_model_end",
+            "metadata": {"langgraph_node": "agent"},
+            "data": {
+                "output": SimpleNamespace(
+                    content="Real answer!",
+                    tool_calls=[],
+                )
+            },
+        }
+
+
+class EmptyReplyEmotionalAgent:
+    async def astream_run(self, **_kwargs):
+        yield {
+            "event": "on_chain_end",
+            "name": "agent",
+            "data": {
+                "output": {
+                    "messages": [SimpleNamespace(tool_calls=[])]
+                }
+            },
+        }
+
 def test_antifraud_agent_has_single_async_entrypoint():
     source = inspect.getsource(AntiFraudAgent)
     assert source.count("async def arun") == 1
@@ -275,6 +315,20 @@ def test_emotional_health_tool_call_keeps_explicit_user_id():
     assert bound[0]["args"]["elder_user_id"] == "explicit_elder"
 
 
+def test_emotional_profile_update_accepts_json_object_string():
+    orchestrator = SystemOrchestrator.__new__(SystemOrchestrator)
+
+    assert orchestrator._normalize_profile_update('{"preferences": ["music"]}') == {
+        "preferences": ["music"]
+    }
+
+
+def test_emotional_profile_update_ignores_plain_string():
+    orchestrator = SystemOrchestrator.__new__(SystemOrchestrator)
+
+    assert orchestrator._normalize_profile_update("music lover") == {}
+
+
 def test_medical_agent_finalizer_blocks_medical_advice():
     agent = MedicalAgent.__new__(MedicalAgent)
     agent.safety_policy = SafetyPolicy()
@@ -380,6 +434,57 @@ def test_emotional_crisis_stream_stays_fully_buffered():
     assert len(tokens) == 1
     assert tokens[0].startswith("\u6211\u5728\u8fd9\u91cc\u966a\u7740\u60a8")
     assert tokens[0].endswith("Hold steady!We are here!")
+
+
+def test_emotional_stream_waits_for_real_reply_instead_of_injecting_template_early():
+    orchestrator = SystemOrchestrator.__new__(SystemOrchestrator)
+    orchestrator.emotional_agent = DelayedRealReplyEmotionalAgent()
+    orchestrator.safety_policy = SafetyPolicy()
+
+    async def collect_tokens():
+        tokens = []
+        async for raw_event in orchestrator._run_emotional_agent(
+            "hello",
+            {"risk_assessment": {"risk_tier": "medium"}},
+        ):
+            event = json.loads(raw_event)
+            if event["type"] == "token":
+                tokens.append(event["data"])
+        return tokens
+
+    tokens = asyncio.run(collect_tokens())
+
+    assert tokens == ["Real answer!"]
+
+
+def test_emotional_stream_uses_live_recovery_reply_when_agent_emits_no_text():
+    orchestrator = SystemOrchestrator.__new__(SystemOrchestrator)
+    orchestrator.emotional_agent = EmptyReplyEmotionalAgent()
+    orchestrator.safety_policy = SafetyPolicy()
+    calls = []
+
+    async def fake_recovery_reply(user_input, context):
+        calls.append((user_input, context))
+        return "Recovered answer."
+
+    orchestrator._generate_emotional_recovery_reply = fake_recovery_reply
+
+    async def collect_tokens():
+        tokens = []
+        async for raw_event in orchestrator._run_emotional_agent(
+            "hello",
+            {"risk_assessment": {"risk_tier": "medium"}},
+        ):
+            event = json.loads(raw_event)
+            if event["type"] == "token":
+                tokens.append(event["data"])
+        return tokens
+
+    tokens = asyncio.run(collect_tokens())
+
+    assert tokens == ["Recovered answer."]
+    assert calls == [("hello", {"risk_assessment": {"risk_tier": "medium"}})]
+
 
 def test_emergency_contact_splits_family_community_sos_without_fake_calls():
     raw_reason = "老人原话：救命，我摔倒了"

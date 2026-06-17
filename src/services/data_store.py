@@ -109,6 +109,17 @@ class DataStore:
     def read_user_jsonl(self, elder_user_id: str, relative_path: PathLike, limit: Optional[int] = None) -> List[Any]:
         return self.read_jsonl(self.user_path(elder_user_id, relative_path), limit=limit)
 
+    def list_user_ids(self) -> List[str]:
+        """Return user ids that have DataStore-managed state."""
+
+        users_dir = self.resolve_path("users")
+        users_dir.mkdir(parents=True, exist_ok=True)
+        return sorted(
+            item.name
+            for item in users_dir.iterdir()
+            if item.is_dir() and item.name and not item.name.startswith(".")
+        )
+
     def reset_user_state(self, elder_user_id: str) -> Dict[str, Any]:
         """Remove all DataStore-managed state for a single elder user.
 

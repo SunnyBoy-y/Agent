@@ -1,0 +1,615 @@
+2026-06-17 11:15:37,569 - agent_backend - INFO - [server.py:94] - 正在初始化系统核心组件...
+2026-06-17 11:15:37,571 - agent_backend - INFO - [orchestrator.py:53] - 正在初始化多智能体系统...
+2026-06-17 11:15:38,694 - agent_backend - INFO - [orchestrator.py:136] - 系统初始化完成。
+2026-06-17 11:15:38,697 - agent_backend - INFO - [server.py:97] - 系统核心组件初始化完成。
+2026-06-17 11:15:55,018 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: edd800ff-5b7b-41e0-a6b7-30af088f334a]
+2026-06-17 11:15:55,107 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: edd800ff-5b7b-41e0-a6b7-30af088f334a] - 88.66ms
+INFO:     127.0.0.1:57422 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 11:19:18,766 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 5590889a-aece-4af3-9436-0239e28749a6]
+2026-06-17 11:19:18,771 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 5590889a-aece-4af3-9436-0239e28749a6] - 4.22ms
+INFO:     127.0.0.1:63221 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 11:19:18,879 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: e3ebefc2-bb62-4717-86a9-7a2b75c84eac]
+2026-06-17 11:19:18,882 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: e3ebefc2-bb62-4717-86a9-7a2b75c84eac] - 2.47ms
+INFO:     127.0.0.1:63221 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__fd414c87_4689_45db_9362_4e02a7c40bc9__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:19:18,884 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 3a4b4e76-7adf-40d9-a38b-6fd2afdd9d1e]
+2026-06-17 11:19:18,886 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 3a4b4e76-7adf-40d9-a38b-6fd2afdd9d1e] - 1.08ms
+INFO:     127.0.0.1:64561 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__3de16cb6_94b2_437e_a9ee_7cb7250ef34b__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:19:21,221 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: dc2c0f45-d74b-454e-b657-c424f71cd37e]
+2026-06-17 11:19:21,225 - agent_backend - INFO - [server.py:154] - Request completed: 304 [ID: dc2c0f45-d74b-454e-b657-c424f71cd37e] - 4.91ms
+INFO:     127.0.0.1:64561 - "GET /debug/ HTTP/1.1" 304 Not Modified
+2026-06-17 11:19:21,250 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 55f926c8-9e64-4c98-ab0d-fcc719c13aab]
+2026-06-17 11:19:21,252 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 55f926c8-9e64-4c98-ab0d-fcc719c13aab] - 2.00ms
+INFO:     127.0.0.1:64561 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__a698146e_e492_4485_8d85_8a32158032c0__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:19:21,253 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 52f6135f-0661-488e-9204-66c2d267e223]
+2026-06-17 11:19:21,254 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 52f6135f-0661-488e-9204-66c2d267e223] - 1.01ms
+INFO:     127.0.0.1:63221 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__47814fc5_2992_4ed2_8d04_875bd1d86471__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:19:35,858 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 97f9b54a-b204-4203-99f5-a2253739f0b7]
+2026-06-17 11:19:35,867 - agent_backend - INFO - [server.py:154] - Request completed: 304 [ID: 97f9b54a-b204-4203-99f5-a2253739f0b7] - 8.53ms
+INFO:     127.0.0.1:63938 - "GET /debug/ HTTP/1.1" 304 Not Modified
+2026-06-17 11:19:35,887 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 3711324b-5571-43a2-abf4-fbc82142417d]
+2026-06-17 11:19:35,888 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 3711324b-5571-43a2-abf4-fbc82142417d] - 1.22ms
+INFO:     127.0.0.1:63938 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__63a1a8bc_0103_41f1_8498_d6109381d2b9__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:19:35,890 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: f02c62f6-8d43-451d-b242-40514451b851]
+2026-06-17 11:19:35,891 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: f02c62f6-8d43-451d-b242-40514451b851] - 1.16ms
+INFO:     127.0.0.1:60063 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__5890e206_7bee_4bb9_9a8a_470d86291fbd__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:30:28,540 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 5d730b91-1e42-471f-abc5-67d86ce110e9]
+2026-06-17 11:30:28,542 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: b764b0da-db80-4e0e-9d77-50be67e8b634]
+2026-06-17 11:30:28,546 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 5d730b91-1e42-471f-abc5-67d86ce110e9] - 5.29ms
+INFO:     127.0.0.1:52787 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 11:30:28,547 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: b764b0da-db80-4e0e-9d77-50be67e8b634] - 4.27ms
+INFO:     127.0.0.1:54851 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:30:31,878 - agent_backend - INFO - [server.py:149] - Request started: OPTIONS /api/chat [ID: 9a897d27-fc65-4879-8dad-cb3a307f06c9]
+2026-06-17 11:30:31,879 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 9a897d27-fc65-4879-8dad-cb3a307f06c9] - 2.01ms
+INFO:     127.0.0.1:54851 - "OPTIONS /api/chat HTTP/1.1" 200 OK
+2026-06-17 11:30:31,881 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 28af0bf0-ec17-429e-945f-48f6f35c29e3]
+2026-06-17 11:30:31,896 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 11:30:31,897 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 28af0bf0-ec17-429e-945f-48f6f35c29e3] - 16.73ms
+INFO:     127.0.0.1:54851 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 11:30:43,931 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 11:30:52,241 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 11:31:05,318 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 4ac9e1ca-395d-4bc0-8289-b0fcf515159e]
+2026-06-17 11:31:05,320 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 4ac9e1ca-395d-4bc0-8289-b0fcf515159e] - 1.52ms
+INFO:     127.0.0.1:61956 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 11:31:05,325 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: 9c68ba34-df12-435e-8ac1-1a4b0dd9a8d8]
+2026-06-17 11:31:05,328 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 9c68ba34-df12-435e-8ac1-1a4b0dd9a8d8] - 3.00ms
+INFO:     127.0.0.1:61956 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:07,982 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 5d5c0424-611f-4d50-8cd8-6a8148325a15]
+2026-06-17 11:31:07,997 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 5d5c0424-611f-4d50-8cd8-6a8148325a15] - 14.12ms
+INFO:     127.0.0.1:61956 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:28,937 - agent_backend - INFO - [server.py:149] - Request started: GET /debug [ID: d36b7150-3897-4b2c-86cd-63a8cacf9f83]
+2026-06-17 11:31:28,939 - agent_backend - INFO - [server.py:154] - Request completed: 307 [ID: d36b7150-3897-4b2c-86cd-63a8cacf9f83] - 2.01ms
+INFO:     127.0.0.1:65482 - "GET /debug HTTP/1.1" 307 Temporary Redirect
+2026-06-17 11:31:28,942 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: dc8843aa-f7f5-4351-bb8b-b6d936d3592e]
+2026-06-17 11:31:28,944 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: dc8843aa-f7f5-4351-bb8b-b6d936d3592e] - 1.50ms
+INFO:     127.0.0.1:65482 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 11:31:29,009 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: d7e8c55a-dd58-48e9-9e11-3e0fa88a21c4]
+2026-06-17 11:31:29,012 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: fa07e284-9acb-4fe4-9422-739af704532e]
+2026-06-17 11:31:29,015 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: d7e8c55a-dd58-48e9-9e11-3e0fa88a21c4] - 5.43ms
+INFO:     127.0.0.1:65482 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 11:31:29,015 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: fa07e284-9acb-4fe4-9422-739af704532e] - 2.73ms
+INFO:     127.0.0.1:59218 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:29,049 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: e27fd28f-fe8f-483f-9cf5-a64568ada89f]
+2026-06-17 11:31:29,052 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: e27fd28f-fe8f-483f-9cf5-a64568ada89f] - 2.28ms
+INFO:     127.0.0.1:59218 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__bdafa650_47a3_4b47_a9eb_f6a5120f607c__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:31:29,056 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: cf7d321f-3a12-4ffe-9951-4b63fbaaad33]
+2026-06-17 11:31:29,058 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: cf7d321f-3a12-4ffe-9951-4b63fbaaad33] - 1.84ms
+INFO:     127.0.0.1:59218 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__c0421bc4_4149_45af_97f7_18037b79b7a0__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:31:30,985 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 24f1a3c5-9268-4c31-8ba4-d5d68312493c]
+2026-06-17 11:31:30,996 - agent_backend - INFO - [server.py:154] - Request completed: 304 [ID: 24f1a3c5-9268-4c31-8ba4-d5d68312493c] - 10.20ms
+INFO:     127.0.0.1:59218 - "GET /debug/ HTTP/1.1" 304 Not Modified
+2026-06-17 11:31:31,016 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 7cbf1ee7-a2e2-41d0-824d-2bdcda3f5d24]
+2026-06-17 11:31:31,019 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 7cbf1ee7-a2e2-41d0-824d-2bdcda3f5d24] - 2.40ms
+INFO:     127.0.0.1:59218 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 11:31:31,020 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: 5c2508b4-af58-4f51-a6b4-eeef5edec628]
+2026-06-17 11:31:31,024 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 5c2508b4-af58-4f51-a6b4-eeef5edec628] - 3.77ms
+INFO:     127.0.0.1:65482 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:31,029 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: e87a130a-f6f1-4a39-938f-54265e34cd1e]
+2026-06-17 11:31:31,031 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: ff316b0a-47a7-4d2a-9e22-7f27e2fe566f]
+2026-06-17 11:31:31,034 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: e87a130a-f6f1-4a39-938f-54265e34cd1e] - 4.69ms
+INFO:     127.0.0.1:59218 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__d0e692de_c09a_4132_9d4e_810d9a257cf2__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:31:31,036 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: ff316b0a-47a7-4d2a-9e22-7f27e2fe566f] - 5.07ms
+INFO:     127.0.0.1:61326 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__51d353fb_8265_4ad8_85c9_0c93312eaa02__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:31:33,470 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: dad3a25d-4f92-4e4c-92d3-b64449d3b573]
+2026-06-17 11:31:33,492 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 11:31:33,493 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: dad3a25d-4f92-4e4c-92d3-b64449d3b573] - 22.95ms
+INFO:     127.0.0.1:61326 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 11:31:43,584 - agent_backend - INFO - [server.py:149] - Request started: POST /api/reset_memory [ID: 18c9f244-4fe8-49b8-8ebc-8ab9b0fea72e]
+2026-06-17 11:31:43,614 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 18c9f244-4fe8-49b8-8ebc-8ab9b0fea72e] - 30.06ms
+INFO:     127.0.0.1:62362 - "POST /api/reset_memory?user_id=user_001&include_legacy_rag=false HTTP/1.1" 200 OK
+2026-06-17 11:31:44,944 - agent_backend - INFO - [server.py:149] - Request started: POST /api/reset_profile [ID: 304c02d5-864e-41ae-8529-fecadf74b686]
+2026-06-17 11:31:44,955 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 304c02d5-864e-41ae-8529-fecadf74b686] - 11.88ms
+INFO:     127.0.0.1:62362 - "POST /api/reset_profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:45,556 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 11:31:46,677 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 8a1f4b3b-c3a1-418c-8b93-90a7bdf6eeae]
+2026-06-17 11:31:46,685 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 8a1f4b3b-c3a1-418c-8b93-90a7bdf6eeae] - 8.42ms
+INFO:     127.0.0.1:62362 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:47,106 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: d2d58c65-74e0-4345-ac84-7ed517550d8f]
+2026-06-17 11:31:47,112 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: d2d58c65-74e0-4345-ac84-7ed517550d8f] - 6.26ms
+INFO:     127.0.0.1:62362 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:47,704 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: ceb97377-5119-48ce-9924-4cfaa6819022]
+2026-06-17 11:31:47,711 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: ceb97377-5119-48ce-9924-4cfaa6819022] - 7.09ms
+INFO:     127.0.0.1:62362 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:48,066 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 000f7149-195d-43a1-9aba-73eacc24cd0e]
+2026-06-17 11:31:48,077 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 000f7149-195d-43a1-9aba-73eacc24cd0e] - 10.85ms
+INFO:     127.0.0.1:62362 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:48,357 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: d0000c1c-d79f-4d71-bdb5-3184f9c0c672]
+2026-06-17 11:31:48,362 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: d0000c1c-d79f-4d71-bdb5-3184f9c0c672] - 4.47ms
+INFO:     127.0.0.1:62362 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:31:53,382 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 11:31:57,046 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 11:31:57,051 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: de3800e0-25b7-47d0-853f-61575246ff69]
+2026-06-17 11:31:57,055 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: de3800e0-25b7-47d0-853f-61575246ff69] - 3.79ms
+INFO:     127.0.0.1:61326 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:32:02,520 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 57bc3cef-33e0-4a61-91b2-8d44c3474bbd]
+2026-06-17 11:32:02,545 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 11:32:02,546 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 57bc3cef-33e0-4a61-91b2-8d44c3474bbd] - 25.80ms
+INFO:     127.0.0.1:64927 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 11:32:14,602 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 11:32:20,504 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 11:32:21,800 - agent_backend - INFO - [server.py:149] - Request started: GET /docs [ID: 118e0045-c21d-4327-9c70-127b4c1aa067]
+2026-06-17 11:32:21,802 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 118e0045-c21d-4327-9c70-127b4c1aa067] - 2.00ms
+INFO:     127.0.0.1:65199 - "GET /docs HTTP/1.1" 200 OK
+2026-06-17 11:32:22,249 - agent_backend - INFO - [server.py:149] - Request started: GET /openapi.json [ID: e5733875-967a-45fa-815d-b14df27c90cd]
+2026-06-17 11:32:22,360 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: e5733875-967a-45fa-815d-b14df27c90cd] - 111.11ms
+INFO:     127.0.0.1:65199 - "GET /openapi.json HTTP/1.1" 200 OK
+2026-06-17 11:32:22,362 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 0362277b-332c-4ce7-80b6-3a8a836be5b1]
+2026-06-17 11:32:22,363 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 097a75ff-32ac-46d6-ad78-45b4ef9d7850]
+2026-06-17 11:32:22,364 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 0362277b-332c-4ce7-80b6-3a8a836be5b1] - 2.53ms
+INFO:     127.0.0.1:62808 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__ab0fe659_218d_4a90_93b9_182b226fa50f__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:32:22,365 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 097a75ff-32ac-46d6-ad78-45b4ef9d7850] - 2.02ms
+INFO:     127.0.0.1:59255 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__945cf5a7_fe6e_4d37_9f01_18bbafcabf60__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:32:41,396 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: f77f1009-fc5c-47ac-a61d-1babcc4dd510]
+2026-06-17 11:32:41,408 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心情不好，项聊聊天
+2026-06-17 11:32:41,408 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: f77f1009-fc5c-47ac-a61d-1babcc4dd510] - 11.76ms
+INFO:     127.0.0.1:59867 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 11:32:53,523 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心情不好，项聊聊天
+2026-06-17 11:32:59,154 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 11:33:27,225 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 11:54:14,684 - agent_backend - INFO - [server.py:149] - Request started: GET /docs [ID: 87619a5d-664f-4c83-935f-a9d6dc967948]
+2026-06-17 11:54:14,685 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 87619a5d-664f-4c83-935f-a9d6dc967948] - 0.72ms
+INFO:     127.0.0.1:50281 - "GET /docs HTTP/1.1" 200 OK
+2026-06-17 11:54:15,130 - agent_backend - INFO - [server.py:149] - Request started: GET /openapi.json [ID: 0079ad79-6233-4742-a765-03618ac58fd0]
+2026-06-17 11:54:15,132 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 0079ad79-6233-4742-a765-03618ac58fd0] - 1.97ms
+INFO:     127.0.0.1:50281 - "GET /openapi.json HTTP/1.1" 200 OK
+2026-06-17 11:54:15,226 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 6495cb77-5098-4b4f-97b8-d379a2817821]
+2026-06-17 11:54:15,227 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 6495cb77-5098-4b4f-97b8-d379a2817821] - 0.59ms
+INFO:     127.0.0.1:50281 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__a6f871a3_42f7_46c9_9b87_61bcb2c667e1__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:54:15,231 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 19c3e864-7d57-498b-99f1-a5d5543dc6ab]
+2026-06-17 11:54:15,232 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 19c3e864-7d57-498b-99f1-a5d5543dc6ab] - 0.92ms
+INFO:     127.0.0.1:50281 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__4ecf6c88_f199_4002_b667_c747ff5d5b5d__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:54:20,758 - agent_backend - INFO - [server.py:149] - Request started: GET /debug [ID: bf25536d-e1d5-47af-8e87-c7e9766f7455]
+2026-06-17 11:54:20,759 - agent_backend - INFO - [server.py:154] - Request completed: 307 [ID: bf25536d-e1d5-47af-8e87-c7e9766f7455] - 1.03ms
+INFO:     127.0.0.1:63894 - "GET /debug HTTP/1.1" 307 Temporary Redirect
+2026-06-17 11:54:20,762 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: f1b01905-7226-48b4-9c2a-db6cb3d84c09]
+2026-06-17 11:54:20,764 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: f1b01905-7226-48b4-9c2a-db6cb3d84c09] - 1.55ms
+INFO:     127.0.0.1:63894 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 11:54:20,792 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: ea815872-835c-41f7-9c2d-9235a1886978]
+2026-06-17 11:54:20,793 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: 295582c9-d4d9-44af-a87d-262c0f57f24e]
+2026-06-17 11:54:20,794 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: ea815872-835c-41f7-9c2d-9235a1886978] - 2.12ms
+INFO:     127.0.0.1:63894 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 11:54:20,795 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 295582c9-d4d9-44af-a87d-262c0f57f24e] - 1.90ms
+INFO:     127.0.0.1:49606 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:54:20,823 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: cd3fb3bd-caee-4462-b3fe-acab7af50d86]
+2026-06-17 11:54:20,824 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: cd3fb3bd-caee-4462-b3fe-acab7af50d86] - 1.02ms
+INFO:     127.0.0.1:49606 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__a629c00f_3382_4d4d_ba65_96e2cefe5034__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:54:20,828 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 4c709260-2652-48f7-9e67-23fc2be63667]
+2026-06-17 11:54:20,830 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 4c709260-2652-48f7-9e67-23fc2be63667] - 1.77ms
+INFO:     127.0.0.1:49606 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__5024a0b5_cf99_4f34_a91f_043ac4a09022__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:54:24,279 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: de632517-03ea-4943-92ef-50a4f1543e5b]
+2026-06-17 11:54:24,293 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 11:54:24,293 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: de632517-03ea-4943-92ef-50a4f1543e5b] - 14.51ms
+INFO:     127.0.0.1:49606 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 11:54:36,400 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 11:54:43,276 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 11:54:48,509 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 11:54:48,545 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: b4dcd693-fee6-4ec9-9704-b605f9b25f03]
+2026-06-17 11:54:48,553 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: b4dcd693-fee6-4ec9-9704-b605f9b25f03] - 8.01ms
+INFO:     127.0.0.1:49606 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 11:55:10,835 - agent_backend - INFO - [server.py:149] - Request started: GET /docs [ID: c0d2372f-7320-42d2-a17d-163415e6030f]
+2026-06-17 11:55:10,838 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: c0d2372f-7320-42d2-a17d-163415e6030f] - 2.58ms
+INFO:     127.0.0.1:60007 - "GET /docs HTTP/1.1" 200 OK
+2026-06-17 11:55:10,891 - agent_backend - INFO - [server.py:149] - Request started: GET /openapi.json [ID: 76bfdd0b-0db6-4bde-aca8-2c860077b258]
+2026-06-17 11:55:10,892 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 76bfdd0b-0db6-4bde-aca8-2c860077b258] - 0.94ms
+INFO:     127.0.0.1:60007 - "GET /openapi.json HTTP/1.1" 200 OK
+2026-06-17 11:55:10,900 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 94d7cac9-34a7-489c-b851-c5512c452bcc]
+2026-06-17 11:55:10,901 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 94d7cac9-34a7-489c-b851-c5512c452bcc] - 1.02ms
+INFO:     127.0.0.1:60007 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__95db9d64_0945_4bfa_bae9_667950b5828a__0 HTTP/1.1" 404 Not Found
+2026-06-17 11:55:10,903 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 292bc0d1-7799-4357-aa78-78393c46eb12]
+2026-06-17 11:55:10,905 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 292bc0d1-7799-4357-aa78-78393c46eb12] - 1.98ms
+INFO:     127.0.0.1:60007 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__b6c3722d_1326_486a_8bdc_4aa37ca914af__1 HTTP/1.1" 404 Not Found
+2026-06-17 11:55:15,630 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 5bb51bc9-44bd-4984-9985-64371e8e319e]
+2026-06-17 11:55:15,639 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: string
+2026-06-17 11:55:15,640 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 5bb51bc9-44bd-4984-9985-64371e8e319e] - 9.21ms
+INFO:     127.0.0.1:60007 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 11:55:27,654 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: string
+2026-06-17 11:55:27,654 - agent_backend - INFO - [router_agent.py:99] - Rule-based route selected: emotional_agent
+2026-06-17 11:55:30,931 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 12:12:17,251 - agent_backend - INFO - [server.py:149] - Request started: GET /subug [ID: 4a23a35d-c763-4c5a-9812-86ebc2e86020]
+2026-06-17 12:12:17,254 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 4a23a35d-c763-4c5a-9812-86ebc2e86020] - 3.03ms
+INFO:     127.0.0.1:52782 - "GET /subug HTTP/1.1" 404 Not Found
+2026-06-17 12:12:17,291 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 7bf3a4a4-3f90-4c03-a0e2-32ed2c6d2218]
+2026-06-17 12:12:17,292 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 7bf3a4a4-3f90-4c03-a0e2-32ed2c6d2218] - 1.10ms
+INFO:     127.0.0.1:52782 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__9f6ef9f7_2a3a_4b7f_ae63_c6b8e7002b17__0 HTTP/1.1" 404 Not Found
+2026-06-17 12:12:17,296 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 831bbdb8-1766-4e74-b5aa-0a35f575bdea]
+2026-06-17 12:12:17,297 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 831bbdb8-1766-4e74-b5aa-0a35f575bdea] - 0.77ms
+INFO:     127.0.0.1:52782 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__49ee7c6e_3772_4066_bb38_0f424be10d30__1 HTTP/1.1" 404 Not Found
+2026-06-17 12:12:17,669 - agent_backend - INFO - [server.py:149] - Request started: GET /favicon.ico [ID: 62e7e953-2c0e-4a80-97d8-639244e9985e]
+2026-06-17 12:12:17,670 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 62e7e953-2c0e-4a80-97d8-639244e9985e] - 1.41ms
+INFO:     127.0.0.1:52782 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+2026-06-17 12:12:24,726 - agent_backend - INFO - [server.py:149] - Request started: GET /debug [ID: cc2e231c-7578-43c5-9771-e170c9f0aaf1]
+2026-06-17 12:12:24,728 - agent_backend - INFO - [server.py:154] - Request completed: 307 [ID: cc2e231c-7578-43c5-9771-e170c9f0aaf1] - 2.51ms
+INFO:     127.0.0.1:61465 - "GET /debug HTTP/1.1" 307 Temporary Redirect
+2026-06-17 12:12:24,730 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 9c8b7f67-13e1-4d3b-930c-10ce2c47d995]
+2026-06-17 12:12:24,735 - agent_backend - INFO - [server.py:154] - Request completed: 304 [ID: 9c8b7f67-13e1-4d3b-930c-10ce2c47d995] - 4.52ms
+INFO:     127.0.0.1:61465 - "GET /debug/ HTTP/1.1" 304 Not Modified
+2026-06-17 12:12:24,773 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 6c3f82e6-9e46-4396-a0bb-585149c5f969]
+2026-06-17 12:12:24,774 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: d40b06c1-6030-4a01-8e15-04c7697944ec]
+2026-06-17 12:12:24,776 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 6c3f82e6-9e46-4396-a0bb-585149c5f969] - 3.14ms
+INFO:     127.0.0.1:61465 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 12:12:24,776 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: d40b06c1-6030-4a01-8e15-04c7697944ec] - 2.00ms
+INFO:     127.0.0.1:57148 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:12:24,811 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 6cbc6db9-6955-4b72-9d87-fd84638903ef]
+2026-06-17 12:12:24,813 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 6cbc6db9-6955-4b72-9d87-fd84638903ef] - 2.01ms
+INFO:     127.0.0.1:57148 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__fa2ba3c5_080a_4933_baae_ec1ab74f9fb1__0 HTTP/1.1" 404 Not Found
+2026-06-17 12:12:24,816 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 1261a65e-8f68-4551-9e15-1e80b6b13cb9]
+2026-06-17 12:12:24,817 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 1261a65e-8f68-4551-9e15-1e80b6b13cb9] - 1.00ms
+INFO:     127.0.0.1:57148 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__6687bffd_dde6_4544_997d_3e21fc6b1920__1 HTTP/1.1" 404 Not Found
+2026-06-17 12:12:27,130 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 8679eeac-7564-488a-83ee-e98ec3ee8d3f]
+2026-06-17 12:12:27,143 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 12:12:27,143 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 8679eeac-7564-488a-83ee-e98ec3ee8d3f] - 12.38ms
+INFO:     127.0.0.1:57148 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 12:12:38,081 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 9e5e44d9-c8a6-48fa-8856-1525b68a9ebc]
+2026-06-17 12:12:38,090 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 9e5e44d9-c8a6-48fa-8856-1525b68a9ebc] - 8.80ms
+INFO:     127.0.0.1:57148 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:12:45,741 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: bec95d15-ccfe-4df3-a698-0a20ff3f98ea]
+2026-06-17 12:12:45,754 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 你好
+2026-06-17 12:12:45,754 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: bec95d15-ccfe-4df3-a698-0a20ff3f98ea] - 13.56ms
+INFO:     127.0.0.1:56921 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 12:12:57,875 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 你好
+2026-06-17 12:12:57,876 - agent_backend - INFO - [router_agent.py:99] - Rule-based route selected: emotional_agent
+2026-06-17 12:13:33,189 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 12:13:33,205 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 6286a8d9-878c-46ce-b8c2-78f7daaacabb]
+2026-06-17 12:13:33,215 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 6286a8d9-878c-46ce-b8c2-78f7daaacabb] - 10.01ms
+INFO:     127.0.0.1:56921 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:14:24,691 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 81bce16a-0174-44e6-ac26-9b5b5aa81d7c]
+2026-06-17 12:14:24,706 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 你好我是谁
+2026-06-17 12:14:24,706 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 81bce16a-0174-44e6-ac26-9b5b5aa81d7c] - 14.83ms
+INFO:     127.0.0.1:61820 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 12:14:27,885 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: d3150f10-cafa-43c9-b1c0-1c05dbcc49ef]
+2026-06-17 12:14:27,890 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: d3150f10-cafa-43c9-b1c0-1c05dbcc49ef] - 5.21ms
+INFO:     127.0.0.1:53256 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:14:36,786 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 你好我是谁
+2026-06-17 12:14:36,787 - agent_backend - INFO - [router_agent.py:99] - Rule-based route selected: emotional_agent
+2026-06-17 12:14:42,805 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 12:14:42,821 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 6c093323-2cf3-419b-9308-371eb57c9664]
+2026-06-17 12:14:42,829 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 6c093323-2cf3-419b-9308-371eb57c9664] - 8.03ms
+INFO:     127.0.0.1:61820 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:31:18,743 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 26f6f35a-02f7-4b2e-9963-ab0f6befbbca]
+2026-06-17 12:31:18,748 - agent_backend - INFO - [server.py:154] - Request completed: 304 [ID: 26f6f35a-02f7-4b2e-9963-ab0f6befbbca] - 5.07ms
+INFO:     127.0.0.1:52217 - "GET /debug/ HTTP/1.1" 304 Not Modified
+2026-06-17 12:31:18,771 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: bfa50d2b-d7a5-4112-8f6d-36c3fbca6a0b]
+2026-06-17 12:31:18,772 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: 04109c61-f02f-4f47-9590-7e14bec2fe52]
+2026-06-17 12:31:18,775 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: bfa50d2b-d7a5-4112-8f6d-36c3fbca6a0b] - 5.21ms
+INFO:     127.0.0.1:52217 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 12:31:18,775 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 04109c61-f02f-4f47-9590-7e14bec2fe52] - 3.21ms
+INFO:     127.0.0.1:50691 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:31:18,791 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 8d6c503e-0e38-4af5-813c-630b5ef16a5c]
+2026-06-17 12:31:18,793 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 8d6c503e-0e38-4af5-813c-630b5ef16a5c] - 1.53ms
+INFO:     127.0.0.1:50691 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__613a9993_18e1_47fd_9513_b659d4f8e170__0 HTTP/1.1" 404 Not Found
+2026-06-17 12:31:18,796 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: d4bc0740-252e-4c54-8cd4-37f5daed75d1]
+2026-06-17 12:31:18,796 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: d4bc0740-252e-4c54-8cd4-37f5daed75d1] - 0.00ms
+INFO:     127.0.0.1:50691 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__4d47dfce_d91f_4c0f_8ae8_d5a2852b27f7__1 HTTP/1.1" 404 Not Found
+2026-06-17 12:31:22,335 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: b230ff1b-8a6c-4399-befe-6b1cc1300d8a]
+2026-06-17 12:31:22,338 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 12:31:22,338 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: b230ff1b-8a6c-4399-befe-6b1cc1300d8a] - 2.85ms
+INFO:     127.0.0.1:50691 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 12:31:34,446 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 12:31:34,457 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 635537f3-7d12-4b5d-b4ef-4d81864d1d2f]
+2026-06-17 12:31:34,476 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 635537f3-7d12-4b5d-b4ef-4d81864d1d2f] - 18.89ms
+INFO:     127.0.0.1:57280 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:31:34,574 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 6011789e-46fe-420f-b33a-5613cb2ad0aa]
+2026-06-17 12:31:34,576 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 6011789e-46fe-420f-b33a-5613cb2ad0aa] - 2.01ms
+INFO:     127.0.0.1:57280 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:31:35,063 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 64949b11-eaaa-4c8a-bdf6-340e7d6f6edc]
+2026-06-17 12:31:35,066 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 64949b11-eaaa-4c8a-bdf6-340e7d6f6edc] - 3.03ms
+INFO:     127.0.0.1:57280 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 12:31:40,808 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 12:32:09,299 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 12:32:09,364 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 310e267b-ab7c-4081-9cc9-cfbe4d9a592f]
+2026-06-17 12:32:09,373 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 310e267b-ab7c-4081-9cc9-cfbe4d9a592f] - 8.52ms
+INFO:     127.0.0.1:50691 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:25,082 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: b5b2981d-1750-4222-96ec-fa12f94c86ec]
+2026-06-17 13:50:25,084 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: fa3174d3-e2c9-4f92-9fa7-3d822f3c9ccc]
+2026-06-17 13:50:25,094 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: b5b2981d-1750-4222-96ec-fa12f94c86ec] - 11.57ms
+INFO:     127.0.0.1:57094 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 13:50:25,094 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: fa3174d3-e2c9-4f92-9fa7-3d822f3c9ccc] - 10.05ms
+INFO:     127.0.0.1:59018 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:27,824 - agent_backend - INFO - [server.py:149] - Request started: OPTIONS /api/chat1 [ID: 7519718f-429b-4392-accd-a9f7bfcd8155]
+2026-06-17 13:50:27,827 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 7519718f-429b-4392-accd-a9f7bfcd8155] - 4.22ms
+INFO:     127.0.0.1:59018 - "OPTIONS /api/chat1 HTTP/1.1" 200 OK
+2026-06-17 13:50:27,829 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 73bdddda-83d2-4442-b16f-3bccc84b2b2f]
+2026-06-17 13:50:27,831 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 73bdddda-83d2-4442-b16f-3bccc84b2b2f] - 1.52ms
+INFO:     127.0.0.1:59018 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:27,838 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 2fc5d976-1fe9-43ef-8509-18f6aa43ae0d]
+2026-06-17 13:50:27,849 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 2fc5d976-1fe9-43ef-8509-18f6aa43ae0d] - 11.01ms
+INFO:     127.0.0.1:59018 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:42,538 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 7e676afa-e80f-45d3-bd3b-7298d272895e]
+2026-06-17 13:50:42,547 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 7e676afa-e80f-45d3-bd3b-7298d272895e] - 9.37ms
+INFO:     127.0.0.1:62466 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 13:50:42,579 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 7d367a40-adf8-43a5-87ad-cd064750484b]
+2026-06-17 13:50:42,584 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: e54beae9-d4c3-4c84-9578-0d6e436868fa]
+2026-06-17 13:50:42,591 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 7d367a40-adf8-43a5-87ad-cd064750484b] - 12.09ms
+INFO:     127.0.0.1:62466 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 13:50:42,604 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: e54beae9-d4c3-4c84-9578-0d6e436868fa] - 20.07ms
+INFO:     127.0.0.1:53747 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:42,612 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 29703cf9-5afb-43ed-ad4c-54a2b4393b86]
+2026-06-17 13:50:42,614 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 227db698-9339-43c4-8190-5d59dfdd0f9b]
+2026-06-17 13:50:42,620 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 29703cf9-5afb-43ed-ad4c-54a2b4393b86] - 8.33ms
+INFO:     127.0.0.1:62466 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__05255ea2_a0e5_4245_92cf_8fcac367f01c__0 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:42,631 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 227db698-9339-43c4-8190-5d59dfdd0f9b] - 16.24ms
+INFO:     127.0.0.1:53747 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__f828e7ac_69ca_4bbe_898a_5f34bdd3f767__1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:45,172 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 0478a9b9-f9de-4bef-b75c-09b5eb9b906d]
+2026-06-17 13:50:45,173 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 0478a9b9-f9de-4bef-b75c-09b5eb9b906d] - 0.98ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:45,175 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 00e3d233-eb0c-4a19-8695-a789eec21dd6]
+2026-06-17 13:50:45,178 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 00e3d233-eb0c-4a19-8695-a789eec21dd6] - 3.05ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:48,037 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: fdd9f6c9-8049-4a58-980c-acd0fc68d1bb]
+2026-06-17 13:50:48,038 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: fdd9f6c9-8049-4a58-980c-acd0fc68d1bb] - 1.00ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:48,041 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: a3cab14d-7597-4f76-b654-69a48e06ed2f]
+2026-06-17 13:50:48,043 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: a3cab14d-7597-4f76-b654-69a48e06ed2f] - 2.51ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:49,253 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 3f112fe7-c214-4e3d-bb0c-d5c3322e55b8]
+2026-06-17 13:50:49,258 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 3f112fe7-c214-4e3d-bb0c-d5c3322e55b8] - 5.36ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:49,261 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 87b0283c-7131-41e5-8caa-7ab36695b061]
+2026-06-17 13:50:49,263 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 87b0283c-7131-41e5-8caa-7ab36695b061] - 2.60ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:49,416 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 1debe472-e42c-4190-a30d-62e3c983ad76]
+2026-06-17 13:50:49,419 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 1debe472-e42c-4190-a30d-62e3c983ad76] - 2.62ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:49,422 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 571c9958-da82-41ba-83d6-91f4f9a27f7f]
+2026-06-17 13:50:49,427 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 571c9958-da82-41ba-83d6-91f4f9a27f7f] - 4.89ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:49,561 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: df9c3570-fb32-4271-b7e3-44ebc7b9b913]
+2026-06-17 13:50:49,562 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: df9c3570-fb32-4271-b7e3-44ebc7b9b913] - 1.51ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:49,566 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 4b2997ca-c2d2-4b7f-a9a5-d3e6214d89ef]
+2026-06-17 13:50:49,568 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 4b2997ca-c2d2-4b7f-a9a5-d3e6214d89ef] - 2.62ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:49,723 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 76dda903-bf42-4d1b-885f-fc229c304eb7]
+2026-06-17 13:50:49,724 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 76dda903-bf42-4d1b-885f-fc229c304eb7] - 0.95ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:49,739 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 59db58ac-5911-4003-a3a2-0f269f864bf6]
+2026-06-17 13:50:49,743 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 59db58ac-5911-4003-a3a2-0f269f864bf6] - 3.32ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:49,880 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 8f021c77-87c6-4c94-a770-e606785acce2]
+2026-06-17 13:50:49,882 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 8f021c77-87c6-4c94-a770-e606785acce2] - 2.02ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:49,883 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 911edfe2-3ae7-4c42-a394-6c483aff821f]
+2026-06-17 13:50:49,886 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 911edfe2-3ae7-4c42-a394-6c483aff821f] - 2.95ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:50,038 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: fb92fbf4-8d78-4c02-9c52-eb84f0dc64c5]
+2026-06-17 13:50:50,040 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: fb92fbf4-8d78-4c02-9c52-eb84f0dc64c5] - 2.01ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:50,042 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 49a545c7-3fd6-4777-a0c2-5c5984655017]
+2026-06-17 13:50:50,045 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 49a545c7-3fd6-4777-a0c2-5c5984655017] - 3.62ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:50,197 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 2f78594f-3854-4601-81e6-0831adc9e178]
+2026-06-17 13:50:50,197 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 2f78594f-3854-4601-81e6-0831adc9e178] - 0.50ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:50,199 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 391686d3-0db4-4c86-bae0-af3668661b58]
+2026-06-17 13:50:50,201 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 391686d3-0db4-4c86-bae0-af3668661b58] - 2.88ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:50,362 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: f2a366db-b911-4948-8b18-dfd3bed9b455]
+2026-06-17 13:50:50,363 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: f2a366db-b911-4948-8b18-dfd3bed9b455] - 1.00ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:50,365 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: b37d8c99-1527-4e29-851c-e0e9a29a2201]
+2026-06-17 13:50:50,369 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: b37d8c99-1527-4e29-851c-e0e9a29a2201] - 3.69ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:50,518 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 1f739d22-55a5-45be-b48f-60f2b91eadfa]
+2026-06-17 13:50:50,520 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 1f739d22-55a5-45be-b48f-60f2b91eadfa] - 2.00ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:50,523 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 67823613-d442-4132-94a4-7b49707c6dd3]
+2026-06-17 13:50:50,528 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 67823613-d442-4132-94a4-7b49707c6dd3] - 4.25ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:50,676 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: d2a18348-ce19-4e1e-b70c-583d453d9e83]
+2026-06-17 13:50:50,677 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: d2a18348-ce19-4e1e-b70c-583d453d9e83] - 1.00ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:50,680 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 35ea3984-8100-4dbb-883e-f9b59e6ab04a]
+2026-06-17 13:50:50,685 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 35ea3984-8100-4dbb-883e-f9b59e6ab04a] - 4.82ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:50,840 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 6f72248e-75ec-46f7-a098-c6f542baf981]
+2026-06-17 13:50:50,841 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 6f72248e-75ec-46f7-a098-c6f542baf981] - 1.07ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:50,843 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 79db4300-e59f-4e11-82f9-65a49925326a]
+2026-06-17 13:50:50,847 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 79db4300-e59f-4e11-82f9-65a49925326a] - 3.69ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:51,006 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: f67be8ce-a1af-4c1e-9369-293db3da4434]
+2026-06-17 13:50:51,008 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: f67be8ce-a1af-4c1e-9369-293db3da4434] - 1.78ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:51,011 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 89e2a535-fa11-4d1e-9e52-567edc152e46]
+2026-06-17 13:50:51,013 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 89e2a535-fa11-4d1e-9e52-567edc152e46] - 2.42ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:51,181 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 227c9cc7-d0f1-4328-92aa-4d3ef3b43063]
+2026-06-17 13:50:51,182 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 227c9cc7-d0f1-4328-92aa-4d3ef3b43063] - 1.05ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:51,187 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 61bac136-7619-4409-aed4-33b9b2f159a9]
+2026-06-17 13:50:51,190 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 61bac136-7619-4409-aed4-33b9b2f159a9] - 3.35ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:51,344 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: c0d736e9-b329-44c5-ba62-3449641e6930]
+2026-06-17 13:50:51,346 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: c0d736e9-b329-44c5-ba62-3449641e6930] - 1.18ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:51,356 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: be54dddd-e106-4d0a-b10a-e33b04b53b7c]
+2026-06-17 13:50:51,360 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: be54dddd-e106-4d0a-b10a-e33b04b53b7c] - 4.52ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:51,516 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: d32d7b11-150f-4601-af17-b23d07761c60]
+2026-06-17 13:50:51,518 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: d32d7b11-150f-4601-af17-b23d07761c60] - 2.52ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:51,523 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: e4e0bedb-5988-4c8e-a850-8c3a2462e458]
+2026-06-17 13:50:51,525 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: e4e0bedb-5988-4c8e-a850-8c3a2462e458] - 2.53ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:50:51,666 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 066b497d-115e-4aac-9440-5f02847086b6]
+2026-06-17 13:50:51,667 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 066b497d-115e-4aac-9440-5f02847086b6] - 1.00ms
+INFO:     127.0.0.1:53747 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:50:51,670 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 1d70d039-c8ac-49a9-b163-fe6e5388da87]
+2026-06-17 13:50:51,673 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 1d70d039-c8ac-49a9-b163-fe6e5388da87] - 2.12ms
+INFO:     127.0.0.1:53747 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:51:02,569 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 00c29fc1-db14-4b7d-8133-016f6498c85b]
+2026-06-17 13:51:02,573 - agent_backend - INFO - [server.py:154] - Request completed: 304 [ID: 00c29fc1-db14-4b7d-8133-016f6498c85b] - 4.02ms
+INFO:     127.0.0.1:56779 - "GET /debug/ HTTP/1.1" 304 Not Modified
+2026-06-17 13:51:02,594 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: a1282f78-ff7e-4566-b364-6f9d89d3b7f8]
+2026-06-17 13:51:02,596 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 43c71ed5-d25f-43a8-a003-1cc6aad8eff1]
+2026-06-17 13:51:02,596 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: a1282f78-ff7e-4566-b364-6f9d89d3b7f8] - 2.00ms
+INFO:     127.0.0.1:56779 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 13:51:02,597 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 43c71ed5-d25f-43a8-a003-1cc6aad8eff1] - 1.00ms
+INFO:     127.0.0.1:58380 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__68b4e721_6eec_4498_ba83_96c8e261c890__0 HTTP/1.1" 404 Not Found
+2026-06-17 13:51:02,598 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 98570e96-1506-4639-9f54-f314c5ff4f1b]
+2026-06-17 13:51:02,599 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 98570e96-1506-4639-9f54-f314c5ff4f1b] - 1.00ms
+INFO:     127.0.0.1:56779 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__0df8f9d9_14a2_4a92_b224_d95fb64180ee__1 HTTP/1.1" 404 Not Found
+2026-06-17 13:51:02,600 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: 13aa540e-2ead-4157-a59c-1502902b269b]
+2026-06-17 13:51:02,601 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 13aa540e-2ead-4157-a59c-1502902b269b] - 1.64ms
+INFO:     127.0.0.1:58380 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:51:04,395 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 8fc5914c-2173-4f72-a741-2ac68ea099f5]
+2026-06-17 13:51:04,395 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 8fc5914c-2173-4f72-a741-2ac68ea099f5] - 0.51ms
+INFO:     127.0.0.1:58380 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:51:04,407 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 55163a8e-f9f4-4935-8cbd-86ec9f549210]
+2026-06-17 13:51:04,411 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 55163a8e-f9f4-4935-8cbd-86ec9f549210] - 4.01ms
+INFO:     127.0.0.1:58380 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 13:51:53,726 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: b65a251a-46a8-4995-b4ea-791cec324e3f]
+2026-06-17 13:51:53,728 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: b65a251a-46a8-4995-b4ea-791cec324e3f] - 1.51ms
+INFO:     127.0.0.1:54402 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 13:54:23,336 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 7b0376f0-e3fb-4976-b7c1-27ce7bf5b619]
+2026-06-17 13:54:23,348 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: ping
+2026-06-17 13:54:23,348 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 7b0376f0-e3fb-4976-b7c1-27ce7bf5b619] - 11.48ms
+INFO:     127.0.0.1:51133 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 13:54:23,353 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 0736a920-6599-476d-9800-0b2871436cc8]
+2026-06-17 13:54:23,353 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 0736a920-6599-476d-9800-0b2871436cc8] - 0.00ms
+INFO:     127.0.0.1:51134 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 13:58:21,211 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 38aeede5-8bb3-4794-b258-705d713333a4]
+2026-06-17 13:58:21,213 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 38aeede5-8bb3-4794-b258-705d713333a4] - 2.05ms
+INFO:     127.0.0.1:53595 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 14:03:08,503 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 0c9219c0-0354-4b55-a4c4-410f85d9aa3c]
+2026-06-17 14:03:08,517 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 0c9219c0-0354-4b55-a4c4-410f85d9aa3c] - 14.56ms
+INFO:     127.0.0.1:64041 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 14:03:08,561 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 1435ab10-ffcd-4073-aa84-437ed6cf7bf0]
+2026-06-17 14:03:08,562 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: 221ce4b2-704e-4c24-b3e2-e90f0028c5d1]
+2026-06-17 14:03:08,564 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 1435ab10-ffcd-4073-aa84-437ed6cf7bf0] - 2.71ms
+INFO:     127.0.0.1:64041 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 14:03:08,565 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 221ce4b2-704e-4c24-b3e2-e90f0028c5d1] - 2.72ms
+INFO:     127.0.0.1:57845 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:03:08,591 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 09f9e246-df7d-439f-b8a4-de69e2f07567]
+2026-06-17 14:03:08,591 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 09f9e246-df7d-439f-b8a4-de69e2f07567] - 0.00ms
+INFO:     127.0.0.1:57845 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__f68f0c04_d763_4739_bdd0_01b9b0ef8d8e__0 HTTP/1.1" 404 Not Found
+2026-06-17 14:03:08,597 - agent_backend - INFO - [server.py:149] - Request started: GET /hybridaction/zybTrackerStatisticsAction [ID: 1cd0beec-a3b0-40e7-8449-8287fc54b8d7]
+2026-06-17 14:03:08,598 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 1cd0beec-a3b0-40e7-8449-8287fc54b8d7] - 1.50ms
+INFO:     127.0.0.1:57845 - "GET /hybridaction/zybTrackerStatisticsAction?data=%7B%7D&__callback__=__cb__zybTrackerStatisticsAction__fd550da2_8500_493b_beb6_ec2e81ff0ad2__1 HTTP/1.1" 404 Not Found
+2026-06-17 14:03:10,418 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 6d9cb4af-96cb-4d1a-bacd-0a23e535c13f]
+2026-06-17 14:03:10,423 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 6d9cb4af-96cb-4d1a-bacd-0a23e535c13f] - 5.11ms
+INFO:     127.0.0.1:57845 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:03:10,436 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 244e2305-89ea-445c-8bbf-87bab1564223]
+2026-06-17 14:03:10,440 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 14:03:10,440 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 244e2305-89ea-445c-8bbf-87bab1564223] - 4.06ms
+INFO:     127.0.0.1:57845 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:03:22,464 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 14:03:29,310 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 14:03:34,120 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 14:03:34,141 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: b913e988-14d0-425c-a205-1be61749452a]
+2026-06-17 14:03:34,150 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: b913e988-14d0-425c-a205-1be61749452a] - 9.75ms
+INFO:     127.0.0.1:57845 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:03:40,285 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: cdbd39e6-2b45-43c5-89dc-2324249715d1]
+2026-06-17 14:03:40,286 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: cdbd39e6-2b45-43c5-89dc-2324249715d1] - 1.10ms
+INFO:     127.0.0.1:60276 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:03:40,287 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 05c540d6-79bc-40a4-a9a8-e49fd903a5cc]
+2026-06-17 14:03:40,297 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 14:03:40,298 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 05c540d6-79bc-40a4-a9a8-e49fd903a5cc] - 10.68ms
+INFO:     127.0.0.1:60276 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:03:52,394 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 14:03:57,874 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 14:04:03,971 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 14:04:04,016 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: cf8b45a7-3cf5-4324-ba5e-c74fbf7e8420]
+2026-06-17 14:04:04,024 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: cf8b45a7-3cf5-4324-ba5e-c74fbf7e8420] - 8.02ms
+INFO:     127.0.0.1:60276 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:05:03,462 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 1c928852-21ea-479b-ad3b-05fa2820e616]
+2026-06-17 14:05:03,463 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 1c928852-21ea-479b-ad3b-05fa2820e616] - 0.51ms
+INFO:     127.0.0.1:64581 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:05:03,466 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 15740feb-a2c2-45a8-8254-fe9452f30f63]
+2026-06-17 14:05:03,474 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: haod
+2026-06-17 14:05:03,474 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 15740feb-a2c2-45a8-8254-fe9452f30f63] - 7.75ms
+INFO:     127.0.0.1:64581 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:05:15,604 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: haod
+2026-06-17 14:05:15,607 - agent_backend - INFO - [router_agent.py:99] - Rule-based route selected: emotional_agent
+2026-06-17 14:05:39,820 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 14:05:39,859 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: f8830896-1361-4a08-9f26-f3d73ce8fa66]
+2026-06-17 14:05:39,870 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: f8830896-1361-4a08-9f26-f3d73ce8fa66] - 10.97ms
+INFO:     127.0.0.1:64581 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:06:21,753 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 470e89e9-a6d0-44bd-a167-283dbebeebdf]
+2026-06-17 14:06:21,761 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 470e89e9-a6d0-44bd-a167-283dbebeebdf] - 7.59ms
+INFO:     127.0.0.1:59588 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:06:24,869 - agent_backend - INFO - [server.py:149] - Request started: POST /api/reset_memory [ID: 8b594f91-b362-489f-bf65-f2a4df12d70c]
+2026-06-17 14:06:24,881 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 8b594f91-b362-489f-bf65-f2a4df12d70c] - 11.81ms
+INFO:     127.0.0.1:59588 - "POST /api/reset_memory?user_id=user_001&include_legacy_rag=false HTTP/1.1" 200 OK
+2026-06-17 14:06:25,940 - agent_backend - INFO - [server.py:149] - Request started: POST /api/reset_profile [ID: c8b5aa13-7a89-46f4-9608-03ec4d1b5f95]
+2026-06-17 14:06:25,947 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: c8b5aa13-7a89-46f4-9608-03ec4d1b5f95] - 7.49ms
+INFO:     127.0.0.1:59588 - "POST /api/reset_profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:06:26,646 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: 22bb58b2-7e6f-472b-bd62-64860c263994]
+2026-06-17 14:06:26,655 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 22bb58b2-7e6f-472b-bd62-64860c263994] - 8.45ms
+INFO:     127.0.0.1:59588 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:06:27,162 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: ab501b95-d22d-4b13-b881-8a00bfa6be18]
+2026-06-17 14:06:27,165 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: ab501b95-d22d-4b13-b881-8a00bfa6be18] - 3.05ms
+INFO:     127.0.0.1:59588 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:06:27,426 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 6c77c1f1-385d-4f91-a9d4-c0357f37f146]
+2026-06-17 14:06:27,429 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 6c77c1f1-385d-4f91-a9d4-c0357f37f146] - 3.18ms
+INFO:     127.0.0.1:59588 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:06:40,163 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 1414b2e7-fe80-4024-9c5c-86d39617a6b5]
+2026-06-17 14:06:40,164 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 1414b2e7-fe80-4024-9c5c-86d39617a6b5] - 1.00ms
+INFO:     127.0.0.1:59901 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:06:40,166 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: aa9ecf56-cae5-493a-812d-c0a2a407af64]
+2026-06-17 14:06:40,169 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 你好
+2026-06-17 14:06:40,170 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: aa9ecf56-cae5-493a-812d-c0a2a407af64] - 4.51ms
+INFO:     127.0.0.1:59901 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:06:51,996 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 8c13e7ef-a55e-4702-8370-c3d99184731d]
+2026-06-17 14:06:52,004 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 8c13e7ef-a55e-4702-8370-c3d99184731d] - 7.51ms
+INFO:     127.0.0.1:59901 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:07:27,563 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 305f16d4-922d-4fa0-ad0c-b5b802a98a51]
+2026-06-17 14:07:27,564 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 305f16d4-922d-4fa0-ad0c-b5b802a98a51] - 1.00ms
+INFO:     127.0.0.1:61852 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 14:07:27,577 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 6ac34133-b7c6-4176-a003-8e4424a8242e]
+2026-06-17 14:07:27,579 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 6ac34133-b7c6-4176-a003-8e4424a8242e] - 2.00ms
+INFO:     127.0.0.1:61853 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 14:08:17,660 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: f0301eb4-efba-4f71-b516-911a5a4e82db]
+2026-06-17 14:08:17,661 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: f0301eb4-efba-4f71-b516-911a5a4e82db] - 1.00ms
+INFO:     127.0.0.1:61704 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:08:17,668 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 7e3c211d-663c-404c-bd39-d10906074296]
+2026-06-17 14:08:17,670 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: ????????????
+2026-06-17 14:08:17,670 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 7e3c211d-663c-404c-bd39-d10906074296] - 2.05ms
+INFO:     127.0.0.1:61706 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:08:30,022 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: d6b55bb3-97cb-46c8-b3bf-de13c944571d]
+2026-06-17 14:08:30,023 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: d6b55bb3-97cb-46c8-b3bf-de13c944571d] - 1.01ms
+INFO:     127.0.0.1:54698 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:08:30,028 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 3bb96505-b27d-4ba4-83b3-ae238fdcf6fd]
+2026-06-17 14:08:30,031 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: ????????????
+2026-06-17 14:08:30,031 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 3bb96505-b27d-4ba4-83b3-ae238fdcf6fd] - 3.06ms
+INFO:     127.0.0.1:54696 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:08:42,068 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: ????????????
+2026-06-17 14:08:46,141 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 14:08:50,308 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 14:08:50,819 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 1b91bcf9-945f-4ca8-bc2a-c3076a5ce4a6]
+2026-06-17 14:08:50,825 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 1b91bcf9-945f-4ca8-bc2a-c3076a5ce4a6] - 5.36ms
+INFO:     127.0.0.1:57199 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:08:50,828 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: a8570644-e00e-45ee-b3ee-5d5789e3791e]
+2026-06-17 14:08:50,837 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: ????????????
+2026-06-17 14:08:50,837 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: a8570644-e00e-45ee-b3ee-5d5789e3791e] - 8.51ms
+INFO:     127.0.0.1:50329 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:09:02,966 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: ????????????
+2026-06-17 14:09:08,017 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 14:09:12,495 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 14:09:36,628 - agent_backend - INFO - [server.py:149] - Request started: GET /debug/ [ID: 45a43eb8-662c-4b56-9c3c-8e0f63981aa2]
+2026-06-17 14:09:36,642 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 45a43eb8-662c-4b56-9c3c-8e0f63981aa2] - 14.47ms
+INFO:     127.0.0.1:53304 - "GET /debug/ HTTP/1.1" 200 OK
+2026-06-17 14:09:36,676 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: f50c9926-f06f-46d0-9638-c8dcdb93e26b]
+2026-06-17 14:09:36,676 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: f50c9926-f06f-46d0-9638-c8dcdb93e26b] - 0.00ms
+INFO:     127.0.0.1:53304 - "GET /health HTTP/1.1" 200 OK
+2026-06-17 14:09:36,677 - agent_backend - INFO - [server.py:149] - Request started: GET /api/profile [ID: e058b3b4-94e7-4c69-8e5a-7c3af83e02cc]
+2026-06-17 14:09:36,679 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: e058b3b4-94e7-4c69-8e5a-7c3af83e02cc] - 2.00ms
+INFO:     127.0.0.1:53304 - "GET /api/profile?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 14:09:37,811 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: 06d84ef2-c9cb-4869-ab05-7ff6cbc0a6af]
+2026-06-17 14:09:37,817 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: 06d84ef2-c9cb-4869-ab05-7ff6cbc0a6af] - 5.90ms
+INFO:     127.0.0.1:50328 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:30:58,963 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat1 [ID: c0e8af38-d34d-42d9-8873-fb1a080938db]
+2026-06-17 14:30:58,963 - agent_backend - INFO - [server.py:154] - Request completed: 404 [ID: c0e8af38-d34d-42d9-8873-fb1a080938db] - 0.89ms
+INFO:     127.0.0.1:60369 - "POST /api/chat1 HTTP/1.1" 404 Not Found
+2026-06-17 14:30:58,966 - agent_backend - INFO - [server.py:149] - Request started: POST /api/chat [ID: 9281f886-bb4d-4029-aa8c-2de06dbee307]
+2026-06-17 14:30:58,976 - agent_backend - INFO - [orchestrator.py:317] - 收到用户输入: 今天心里有点闷，想聊聊天
+2026-06-17 14:30:58,977 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 9281f886-bb4d-4029-aa8c-2de06dbee307] - 11.73ms
+INFO:     127.0.0.1:60369 - "POST /api/chat HTTP/1.1" 200 OK
+2026-06-17 14:31:11,127 - agent_backend - INFO - [router_agent.py:95] - RouterAgent routing: 今天心里有点闷，想聊聊天
+2026-06-17 14:31:18,982 - agent_backend - INFO - [router_agent.py:215] - LLM routed to: emotional_agent
+2026-06-17 14:31:22,113 - agent_backend - INFO - [orchestrator.py:1463] - Emotional response streaming completed
+2026-06-17 14:31:22,134 - agent_backend - INFO - [server.py:149] - Request started: GET /api/system_status [ID: 31b5c9df-267a-4820-bae6-df9f61af26de]
+2026-06-17 14:31:22,151 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 31b5c9df-267a-4820-bae6-df9f61af26de] - 17.08ms
+INFO:     127.0.0.1:60369 - "GET /api/system_status?user_id=user_001 HTTP/1.1" 200 OK
+2026-06-17 15:13:22,006 - agent_backend - INFO - [server.py:149] - Request started: GET /health [ID: 47dd720a-e313-400c-995a-af70cbdbf86a]
+2026-06-17 15:13:22,006 - agent_backend - INFO - [server.py:154] - Request completed: 200 [ID: 47dd720a-e313-400c-995a-af70cbdbf86a] - 0.00ms
+INFO:     127.0.0.1:59346 - "GET /health HTTP/1.1" 200 OK

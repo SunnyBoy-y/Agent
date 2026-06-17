@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from threading import RLock
 from typing import Any, Dict, List, Optional
 
-from src.schemas.actions import ActionCompleteRequest, ActionSession, ActionType
+from src.schemas.actions import ActionCompleteRequest, ActionConsentRequest, ActionSession, ActionStatus, ActionType
 from src.schemas.mental_health import InterventionLog
 from src.services.data_store import DataStore
 
@@ -34,6 +34,7 @@ class ActionSessionService:
         post_reply: Optional[str] = None,
         action_id: Optional[str] = None,
         idempotency_key: Optional[str] = None,
+        status: ActionStatus = "started",
     ) -> ActionSession:
         user_id = self._normalize_user_id(elder_user_id)
         with self._lock_for(user_id):
@@ -44,9 +45,9 @@ class ActionSessionService:
                 action_id=action_id or f"action_{uuid.uuid4().hex}",
                 elder_user_id=user_id,
                 action_type=action_type,
-                status="started",
+                status=status,
                 payload=payload_data,
-                post_reply=post_reply or self._default_post_reply(action_type),
+                post_reply=post_reply or "",
             )
             sessions = self._load_sessions_unlocked(user_id)
             if idempotency_key:
@@ -64,6 +65,78 @@ class ActionSessionService:
             self._save_sessions_unlocked(user_id, sessions)
             self.store.append_user_jsonl(user_id, self.AUDIT_FILE, session)
             return session
+
+    def list_pending_actions(
+        self,
+        elder_user_id: str,
+        *,
+        target_channel: Optional[str] = "frontend",
+        limit: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        user_id = self._normalize_user_id(elder_user_id)
+        with self._lock_for(user_id):
+            sessions = self._load_sessions_unlocked(user_id)
+            pending: List[Dict[str, Any]] = []
+            for session in sessions:
+                if session.status != "pending":
+                    continue
+                payload = dict(session.payload or {})
+                if target_channel and payload.get("target_channel") != target_channel:
+                    continue
+                if payload.get("consent_required") is not True:
+                    continue
+                pending.append(self._build_pending_action(session))
+            if limit is not None:
+                return pending[: max(0, limit)]
+            return pending
+
+    def consent_action(
+        self,
+        action_id: str,
+        request: ActionConsentRequest,
+        *,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        user_id = self._normalize_user_id(request.elder_user_id)
+        target_id = self._normalize_action_id(action_id)
+        decided_at = request.decided_at or now or utc_now()
+        with self._lock_for(user_id):
+            sessions = self._load_sessions_unlocked(user_id)
+            index = next((idx for idx, item in enumerate(sessions) if item.action_id == target_id), None)
+            if index is None:
+                raise ValueError(f"Action session not found: {target_id}")
+
+            session = sessions[index]
+            if session.status == "started" and request.accepted:
+                return self._build_consent_result(session, idempotent_replay=True)
+            if session.status in self.TERMINAL_STATUSES:
+                raise ValueError(f"Action session already ended: {target_id}")
+            if session.status != "pending":
+                raise ValueError(f"Action session is not pending: {target_id}")
+
+            consent_payload = {
+                "accepted": request.accepted,
+                "text": request.text or "",
+                "source": request.source,
+                "decided_at": decided_at,
+            }
+            if request.payload:
+                consent_payload["payload"] = dict(request.payload)
+
+            if request.accepted:
+                session.status = "started"
+            else:
+                session.status = "cancelled"
+                session.ended_at = decided_at
+                session.result = {"status": "cancelled", "consent": consent_payload}
+            session.updated_at = decided_at
+            session.payload = dict(session.payload or {})
+            session.payload["consent"] = consent_payload
+            sessions[index] = session
+
+            self._save_sessions_unlocked(user_id, sessions)
+            self.store.append_user_jsonl(user_id, self.AUDIT_FILE, session)
+            return self._build_consent_result(session, idempotent_replay=False)
 
     def get_session(self, elder_user_id: str, action_id: str) -> Optional[ActionSession]:
         user_id = self._normalize_user_id(elder_user_id)
@@ -126,6 +199,42 @@ class ActionSessionService:
         payload["status"] = request.status
         return payload
 
+    def _build_pending_action(self, session: ActionSession) -> Dict[str, Any]:
+        payload = dict(session.payload or {})
+        content = (
+            payload.get("content")
+            or payload.get("confirmation_text")
+            or payload.get("reason_summary")
+            or ""
+        )
+        return {
+            "action_id": session.action_id,
+            "action_type": session.action_type,
+            "status": session.status,
+            "target_channel": payload.get("target_channel"),
+            "visibility_scope": payload.get("visibility_scope"),
+            "consent_required": bool(payload.get("consent_required")),
+            "approval_required": bool(payload.get("approval_required")),
+            "source": "background_planner" if payload.get("planner_job_id") else payload.get("source", "unknown"),
+            "source_turn_id": payload.get("source_turn_id") or payload.get("turn_id"),
+            "content": content,
+            "payload": payload,
+            "post_reply": session.post_reply,
+            "created_at": session.created_at,
+            "updated_at": session.updated_at,
+        }
+
+    def _build_consent_result(self, session: ActionSession, *, idempotent_replay: bool) -> Dict[str, Any]:
+        return {
+            "session": session,
+            "action_id": session.action_id,
+            "action_type": session.action_type,
+            "status": session.status,
+            "payload": dict(session.payload or {}),
+            "post_reply": session.post_reply,
+            "idempotent_replay": idempotent_replay,
+        }
+
     def _build_intervention_log(self, session: ActionSession) -> InterventionLog:
         payload = dict(session.payload or {})
         payload.update(
@@ -172,13 +281,6 @@ class ActionSessionService:
         if session.status == "completed":
             return "gently continue after the completed action"
         return "gently continue after the action ended"
-
-    def _default_post_reply(self, action_type: ActionType) -> str:
-        if action_type == "music":
-            return "这首歌先到这里。您现在心里有没有松一点？"
-        if action_type == "story":
-            return "这个故事先讲到这里。您愿不愿意和我说说刚才想到的事？"
-        return "这个动作先告一段落。我们可以慢慢接着聊。"
 
     def _load_sessions_unlocked(self, elder_user_id: str) -> List[ActionSession]:
         raw_sessions = self.store.read_user_json(elder_user_id, self.SESSIONS_FILE, default=[])

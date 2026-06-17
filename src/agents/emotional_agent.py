@@ -19,6 +19,12 @@ from src.config import Config
 from src.utils.rag_helper import RAGHelper
 from src.tools.professional_skills import ProfessionalSkills
 from src.utils.logger import logger
+from src.agents.companion_prompt import (
+    build_companion_system_prompt,
+    compact_prompt_context,
+    risk_from_context,
+    stage_from_context,
+)
 
 # 定义 Agent 状态
 class AgentState(TypedDict):
@@ -339,17 +345,34 @@ class EmotionalConnectionAgent:
                 mental_health_tendency = self._detect_mental_health_tendency(profile, emotion_trend)
                 therapy_guidance = self._build_therapy_guidance(mental_health_tendency)
 
-                # 5. 构建 System Message（精简版，减少token消耗）
-                system_prompt = f"""你是"小暖"，老人的贴心晚辈。陪老人唠嗑，语气自然温暖像家人面对面。
+                # 5. 构建 System Message：统一人格、记忆、阶段和安全边界。
+                stage = stage_from_context(session_context)
+                risk_tier = risk_from_context(session_context)
+                scene_prompt_context = compact_prompt_context(session_context, max_chars=1600)
+                system_prompt = f"""{build_companion_system_prompt(
+                    phase="emotional_react_agent",
+                    stage=stage,
+                    risk_tier=risk_tier,
+                    task=(
+                        "生成给老人的自然回复，并在需要时调用业务工具。"
+                        "回复先满足当前情绪和具体诉求，再自然保持小暖的人格连续性。"
+                    ),
+                    extra_rules=[
+                        "每次必须调用 EmotionalStateUpdate，用于表达表情、动作、风险级别和必要的画像更新。",
+                        "search_family_photos 只在老人明确想看照片、相册、家人回忆时调用。",
+                        "emergency_contact 只在救命、摔倒、胸闷、喘不上气、自伤等高风险场景调用。",
+                        "record_health_complaint 只记录老人明确说出的身体不适，不推断诊断。",
+                    ],
+                )}
 
 用户画像:{profile_str}
 近期情感:{emotion_trend}
 心理需求:{mental_health_tendency if mental_health_tendency != "none" else "一般陪伴"}
 最近对话:{recent_history_text}
 记忆线索:{memory_context or "无"}
+场景快照:{scene_prompt_context}
 {therapy_guidance}
-规则:①口语化不说书面语不列点不用Markdown;②回复2-3句,轻松聊天;③先共情再接内容,安慰自然不堆砌;④高风险/求助时可到3-4句;⑤禁止哄小孩语气,禁止文本中含动作描写(动作通过工具表达)。
-工具:搜照片→search_family_photos;急救不适→emergency_contact/record_health_complaint;救命摔倒胸闷→emergency_contact(level=high)且回复短;每次必调EmotionalStateUpdate."""
+输出限制：回复正文只给老人听，1到3句；高风险时短而稳。不要在正文里写动作，动作只通过 EmotionalStateUpdate 表达。"""
                 messages = [SystemMessage(content=system_prompt)] + history_messages
             
             # 将当前输入作为 User Message 追加

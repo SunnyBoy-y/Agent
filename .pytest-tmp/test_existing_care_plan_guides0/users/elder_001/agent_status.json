@@ -1,0 +1,14 @@
+{
+  "last_user_interaction": "2026-06-17 15:47:36",
+  "last_proactive_time": "2000-01-01 00:00:00",
+  "last_proactive_domain": "",
+  "last_proactive_content": "",
+  "agent_last_update": {
+    "medical": "2000-01-01 00:00:00",
+    "daily_life": "2000-01-01 00:00:00",
+    "interest": "2000-01-01 00:00:00",
+    "mental_health": "2026-06-17 15:47:36",
+    "emotional": "2000-01-01 00:00:00",
+    "antifraud": "2000-01-01 00:00:00"
+  }
+}

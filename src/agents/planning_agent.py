@@ -11,6 +11,7 @@ from src.policies.safety_policy import SafetyPolicy
 from src.schemas.mental_health import CarePlan, MentalRiskAssessment
 from src.schemas.planner import LLMReview, PlannerQueuedAction, PlannerResult
 from src.services.care_plan_service import CarePlanService
+from src.agents.companion_prompt import build_companion_system_prompt
 
 
 def utc_now() -> datetime:
@@ -302,6 +303,12 @@ class PlanningAgent:
             if parsed.reason_summary:
                 parsed.reason_summary = self._sanitize_text(parsed.reason_summary)
             parsed.suggested_actions = [self._sanitize_text(item) for item in parsed.suggested_actions]
+            parsed.payload = dict(parsed.payload or {})
+            if parsed.type in {"schedule_music", "schedule_story"}:
+                parsed.payload["post_reply"] = self._sanitize_text(
+                    parsed.payload.get("post_reply")
+                    or self._default_action_post_reply(parsed, assessment)
+                )
             if assessment.risk_tier == "crisis" and parsed.type == "quiet_message":
                 continue
             sanitized.append(self._finalize_action_contract(parsed, assessment))
@@ -335,7 +342,18 @@ class PlanningAgent:
         action.payload.setdefault("idempotency_key", action.idempotency_key)
         action.payload.setdefault("assessment_id", assessment.id)
         action.payload.setdefault("turn_id", assessment.turn_id)
+        if action.type in {"schedule_music", "schedule_story"}:
+            action.payload.setdefault("post_reply", self._default_action_post_reply(action, assessment))
         return action
+
+    def _default_action_post_reply(
+        self,
+        action: PlannerQueuedAction,
+        assessment: MentalRiskAssessment,
+    ) -> str:
+        if assessment.next_goal:
+            return assessment.next_goal
+        return ""
 
     def _default_target_channel(self, action: PlannerQueuedAction) -> str:
         if action.type == "family_message":
@@ -484,9 +502,21 @@ class PlanningAgent:
                 [
                     (
                         "system",
-                        "You review elder-support risk evidence. "
-                        "Return only structured semantic review. Never diagnose, never give medical advice, "
-                        "never downgrade a crisis signal, never include chain-of-thought.",
+                        build_companion_system_prompt(
+                            phase="planner_review",
+                            stage="care_plan_review",
+                            risk_tier="medium",
+                            task=(
+                                "Review elder-support risk evidence and return structured semantic review only. "
+                                "Use memory as context, not as proof."
+                            ),
+                            extra_rules=[
+                                "Never diagnose and never give medical advice.",
+                                "Never downgrade a crisis signal.",
+                                "Do not include chain-of-thought.",
+                                "Return only the structured fields requested by the schema.",
+                            ],
+                        ),
                     ),
                     ("human", "{payload}"),
                 ]
@@ -511,10 +541,21 @@ class PlanningAgent:
                 [
                     (
                         "system",
-                        "You are a constrained ReAct-style planner for elder support. "
-                        "Return only structured fields: target_agent, intervention_goal, care_plan_patch, queued_actions. "
-                        "Do not reveal thoughts. Do not diagnose or provide medical advice. "
-                        "Risk tier is fixed by the deterministic assessment.",
+                        build_companion_system_prompt(
+                            phase="care_plan_planner",
+                            stage="care_plan_update",
+                            risk_tier="medium",
+                            task=(
+                                "Return only structured fields: target_agent, intervention_goal, care_plan_patch, queued_actions. "
+                                "Plan the next elder-facing stage while preserving 小暖's stable persona."
+                            ),
+                            extra_rules=[
+                                "Do not reveal thoughts. Do not diagnose or provide medical advice.",
+                                "Risk tier is fixed by the deterministic assessment.",
+                                "Choose stages that make the next response more precise, not more verbose.",
+                                "For schedule_music or schedule_story actions, include payload.post_reply: a short natural Chinese line that the frontend can play immediately after the action ends.",
+                            ],
+                        ),
                     ),
                     ("human", "{payload}"),
                 ]
@@ -533,6 +574,9 @@ class PlanningAgent:
             "current_plan": self._coerce_dict(current_plan),
             "recent_history": context.get("recent_history") or [],
             "recent_history_text": context.get("recent_history_text") or "",
+            "memory_context": context.get("memory_context") or "",
+            "semantic_memory_context": context.get("semantic_memory_context") or "",
+            "scene_context": context.get("scene_context") or {},
         }
         return {"payload": json.dumps(payload, ensure_ascii=False)}
 
@@ -547,6 +591,9 @@ class PlanningAgent:
             "assessment": self._coerce_dict(assessment),
             "current_plan": self._coerce_dict(current_plan),
             "review": self._coerce_dict(review),
+            "scene_context": context.get("scene_context") or {},
+            "memory_context": context.get("memory_context") or "",
+            "semantic_memory_context": context.get("semantic_memory_context") or "",
             "allowed_actions": [
                 "family_message",
                 "community_alert",
@@ -555,5 +602,11 @@ class PlanningAgent:
                 "schedule_story",
             ],
             "recent_history": context.get("recent_history") or [],
+            "requirements": {
+                "frontend_action_post_reply": (
+                    "For schedule_music and schedule_story, payload.post_reply is required, "
+                    "must be ready before the action starts, and should be 1 short Chinese sentence."
+                )
+            },
         }
         return {"payload": json.dumps(payload, ensure_ascii=False)}

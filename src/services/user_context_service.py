@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -9,6 +10,7 @@ class UserContextService:
     """Per-user lightweight context storage for fast-path orchestration."""
 
     CHAT_HISTORY_FILE = "chat_history.json"
+    CHAT_CONTEXT_SUMMARY_FILE = "chat_context_summary.json"
     EMOTION_LOG_FILE = "emotion_log.json"
     AGENT_STATUS_FILE = "agent_status.json"
 
@@ -40,7 +42,11 @@ class UserContextService:
         )
         if not isinstance(history, list):
             history = []
-        records = [item for item in history if self._is_history_record(item)]
+        records = [
+            self._sanitize_history_record(item)
+            for item in history
+            if self._is_history_record(item)
+        ]
         return records[-limit:] if limit is not None else records
 
     def add_memory(self, elder_user_id: str, user_input: str, agent_response: str) -> None:
@@ -48,10 +54,48 @@ class UserContextService:
         history = self.get_recent_history(user_id, limit=None)
         timestamp = self._now_text()
         history.append({"timestamp": timestamp, "role": "user", "content": user_input})
-        history.append({"timestamp": timestamp, "role": "assistant", "content": agent_response})
+        history.append({
+            "timestamp": timestamp,
+            "role": "assistant",
+            "content": self._sanitize_history_content(agent_response, user_input=user_input),
+        })
         if len(history) > 100:
+            overflow = history[:-60]
+            self._merge_chat_summary(user_id, overflow)
             history = history[-60:]
         self.store.write_user_json(user_id, self.CHAT_HISTORY_FILE, history)
+
+    def get_layered_chat_context(
+        self,
+        elder_user_id: str,
+        *,
+        recent_turns: int = 5,
+        max_summary_chars: int = 1200,
+    ) -> Dict[str, Any]:
+        """Return Hermes-style layered context for model prompts.
+
+        Recent raw dialogue stays as a sliding window. Older retained dialogue
+        is compressed into a prompt-only summary and combined with any durable
+        summary created before chat_history truncation.
+        """
+        user_id = self.normalize_user_id(elder_user_id)
+        history = self.get_recent_history(user_id, limit=None)
+        window_size = max(1, recent_turns) * 2
+        recent_window = history[-window_size:] if history else []
+        overflow = history[:-window_size] if len(history) > window_size else []
+        stored_summary = self._load_chat_summary(user_id).get("summary", "")
+        overflow_summary = self._summarize_history_records(overflow)
+        summary_text = self._join_summary_parts(
+            [stored_summary, overflow_summary],
+            max_chars=max_summary_chars,
+        )
+        return {
+            "summary": summary_text,
+            "recent_window": recent_window,
+            "recent_window_text": self._format_history_records(recent_window),
+            "overflow_count": len(overflow),
+            "recent_turns": recent_turns,
+        }
 
     def build_default_agent_status(self) -> Dict[str, Any]:
         now = self._now_text()
@@ -150,7 +194,7 @@ class UserContextService:
         profile = context.get("user_profile") or {}
         return {
             "user_id": self.normalize_user_id(elder_user_id),
-            "profile_name": profile.get("name", "unknown"),
+            "profile_name": self.display_name(profile),
             "health_condition": profile.get("health_condition", []),
             "preferences": profile.get("preferences", []),
             "visual_analysis": context.get("visual_analysis"),
@@ -175,6 +219,167 @@ class UserContextService:
 
     def _is_history_record(self, item: Any) -> bool:
         return isinstance(item, dict) and "role" in item and "content" in item
+
+    def display_name(self, profile: Optional[Dict[str, Any]], fallback: str = "您") -> str:
+        if not isinstance(profile, dict):
+            return fallback
+        name = str(profile.get("name") or "").strip()
+        if name.lower() in {"unknown", "none", "null"}:
+            return fallback
+        return name or fallback
+
+    def _sanitize_history_record(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        cleaned = dict(item)
+        cleaned["content"] = self._sanitize_history_content(cleaned.get("content", ""))
+        return cleaned
+
+    def _load_chat_summary(self, elder_user_id: str) -> Dict[str, Any]:
+        raw = self.store.read_user_json(
+            self.normalize_user_id(elder_user_id),
+            self.CHAT_CONTEXT_SUMMARY_FILE,
+            default={},
+        )
+        return raw if isinstance(raw, dict) else {}
+
+    def _save_chat_summary(self, elder_user_id: str, summary: str) -> None:
+        self.store.write_user_json(
+            self.normalize_user_id(elder_user_id),
+            self.CHAT_CONTEXT_SUMMARY_FILE,
+            {
+                "summary": str(summary or "").strip(),
+                "updated_at": self._now_text(),
+                "format": "deterministic_dialogue_summary_v1",
+            },
+        )
+
+    def _merge_chat_summary(self, elder_user_id: str, records: List[Dict[str, Any]]) -> None:
+        if not records:
+            return
+        existing = self._load_chat_summary(elder_user_id).get("summary", "")
+        addition = self._summarize_history_records(records, max_turns=24)
+        merged = self._join_summary_parts([existing, addition], max_chars=2400)
+        if merged:
+            self._save_chat_summary(elder_user_id, merged)
+
+    def _join_summary_parts(self, parts: List[str], *, max_chars: int) -> str:
+        lines: List[str] = []
+        seen = set()
+        for part in parts:
+            for raw_line in str(part or "").splitlines():
+                line = raw_line.strip()
+                if not line or line in seen:
+                    continue
+                seen.add(line)
+                lines.append(line)
+        text = "\n".join(lines)
+        if len(text) <= max_chars:
+            return text
+        return text[-max_chars:].lstrip()
+
+    def _summarize_history_records(
+        self,
+        records: List[Dict[str, Any]],
+        *,
+        max_turns: int = 16,
+        max_chars_per_side: int = 90,
+    ) -> str:
+        if not records:
+            return ""
+        turns: List[Dict[str, str]] = []
+        current: Dict[str, str] = {}
+        for item in records:
+            role = item.get("role")
+            content = self._clip_text(item.get("content"), max_chars_per_side)
+            if not content:
+                continue
+            if role == "user":
+                if current:
+                    turns.append(current)
+                current = {"user": content}
+            elif role == "assistant":
+                if not current:
+                    current = {}
+                current["assistant"] = content
+                turns.append(current)
+                current = {}
+        if current:
+            turns.append(current)
+        selected = turns[-max_turns:]
+        lines = []
+        for turn in selected:
+            user = turn.get("user")
+            assistant = turn.get("assistant")
+            if user and assistant:
+                lines.append(f"- 老人曾说：{user}；小暖回应：{assistant}")
+            elif user:
+                lines.append(f"- 老人曾说：{user}")
+            elif assistant:
+                lines.append(f"- 小暖曾回应：{assistant}")
+        return "\n".join(lines)
+
+    def _format_history_records(self, records: List[Dict[str, Any]]) -> str:
+        lines: List[str] = []
+        for item in records or []:
+            role = "老人" if item.get("role") == "user" else "小暖"
+            content = str(item.get("content") or "").strip()
+            if content:
+                lines.append(f"{role}: {content}")
+        return "\n".join(lines)
+
+    def _clip_text(self, value: Any, max_chars: int) -> str:
+        text = re.sub(r"\s+", " ", str(value or "")).strip()
+        if len(text) <= max_chars:
+            return text
+        return text[: max(0, max_chars - 1)].rstrip() + "…"
+
+    def _sanitize_history_content(self, content: Any, user_input: Any = None) -> str:
+        text = str(content or "")
+        for prefix in ("unknown，", "unknown,"):
+            if text.lower().startswith(prefix.lower()):
+                return text[len(prefix):].lstrip()
+        if self._is_current_time_query(user_input) or "临时时间上下文" in text or "当前北京时间" in text:
+            return self._redact_current_time_answer(text)
+        return text
+
+    def _is_current_time_query(self, text: Any) -> bool:
+        value = str(text or "")
+        if not value:
+            return False
+        return any(
+            marker in value
+            for marker in (
+                "现在几点",
+                "现在几时",
+                "几点了",
+                "几时了",
+                "什么时间",
+                "当前时间",
+                "北京时间",
+                "今天几号",
+                "今天周几",
+                "今天星期几",
+            )
+        )
+
+    def _redact_current_time_answer(self, text: str) -> str:
+        value = str(text or "").strip()
+        if not value:
+            return ""
+        generic = "我按当时的当前时间回答了老人。"
+        value = re.sub(
+            r"(?:当前)?北京?时间[是为：:\s]*\d{4}[-年/]\d{1,2}[-月/]\d{1,2}[日号]?"
+            r"(?:\s*(?:周|星期)[一二三四五六日天])?(?:\s*\d{1,2}[:：点时]\d{0,2}\s*分?)?",
+            generic,
+            value,
+        )
+        value = re.sub(
+            r"现在[是为：:\s]*(?:\d{4}[-年/]\d{1,2}[-月/]\d{1,2}[日号]?)?"
+            r"(?:\s*(?:周|星期)[一二三四五六日天])?\s*\d{1,2}[:：点时]\d{0,2}\s*分?",
+            generic,
+            value,
+        )
+        value = re.sub(r"\b\d{1,2}:\d{2}\b", "当时那个时间", value)
+        return value
 
     def _now_text(self) -> str:
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")

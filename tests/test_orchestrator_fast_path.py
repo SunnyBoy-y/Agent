@@ -8,11 +8,17 @@ from src.services.background_planner_service import BackgroundPlannerService
 from src.services.care_plan_service import CarePlanService
 from src.services.context_guard import ContextGuard
 from src.services.data_store import DataStore
+from src.services.frontend_action_service import FrontendActionService
 from src.services.relay_message_service import RelayMessageService
+from src.services.response_style_guard import ResponseStyleGuard
+from src.services.scene_context_service import SceneContextService
 from src.services.user_context_service import UserContextService
 
 
 class FakeRouter:
+    async def route(self, _text, context=None):
+        return "daily_life_agent"
+
     def route_sync(self, _text, context=None):
         return "daily_life_agent"
 
@@ -31,6 +37,9 @@ class LightweightOrchestrator(SystemOrchestrator):
         self.assessment_service = AssessmentService(self.data_store)
         self.care_plan_service = CarePlanService(self.data_store)
         self.context_guard = ContextGuard()
+        self.scene_context_service = SceneContextService(self.user_context_service)
+        self.response_style_guard = ResponseStyleGuard()
+        self.frontend_action_service = FrontendActionService()
         self.relay_message_service = relay_service or RelayMessageService(self.data_store)
         self.background_planner_service = BackgroundPlannerService(
             self.data_store,
@@ -47,6 +56,8 @@ class LightweightOrchestrator(SystemOrchestrator):
             "tool_calls": [],
             "background_tasks": [],
             "context_snapshot": {},
+            "agent_context": {},
+            "llm_inputs": [],
         }
 
     async def _build_shared_context(self, _user_input, context):
@@ -62,6 +73,13 @@ class LightweightOrchestrator(SystemOrchestrator):
             "action": "nod",
             "risk_level": "safe",
         }
+
+    def _get_agent_instance(self, _agent_name):
+        return None
+
+    async def _stream_llm_first_response(self, **_kwargs):
+        if False:
+            yield ""
 
 
 async def _collect_events(orchestrator, text, context):
@@ -135,6 +153,51 @@ def test_safe_input_has_consistent_risk_detail_and_no_relay(tmp_path):
     assert not any(event["type"] == "risk" for event in events)
     assert orchestrator.relay_message_service.list_messages("elder_001") == []
     assert orchestrator.last_system_state["last_route"] == "daily_life_agent"
+
+
+def test_safe_input_emits_visible_ack_before_slow_chain(tmp_path):
+    orchestrator = LightweightOrchestrator(tmp_path)
+
+    events = asyncio.run(
+        _collect_events(
+            orchestrator,
+            "\u4eca\u5929\u5fc3\u91cc\u6709\u70b9\u95f7\uff0c\u60f3\u804a\u804a\u5929",
+            {"user_id": "elder_001", "turn_id": "turn_latency"},
+        )
+    )
+
+    first_token_index = next(index for index, event in enumerate(events) if event["type"] == "token")
+    risk_detail_index = next(index for index, event in enumerate(events) if event["type"] == "risk_detail")
+
+    assert first_token_index < risk_detail_index
+    assert events[first_token_index]["data"] == "\u4eca\u5929\u5fc3\u91cc\u6709\u70b9\u95f7\uff0c\u60f3\u804a\u804a\u5929\u2026\u2026"
+    assert orchestrator.last_system_state["last_route"] == "daily_life_agent"
+
+
+def test_explicit_weather_request_emits_frontend_weather_action(tmp_path):
+    orchestrator = LightweightOrchestrator(tmp_path)
+
+    events = asyncio.run(
+        _collect_events(
+            orchestrator,
+            "帮我看看天气",
+            {
+                "user_id": "elder_001",
+                "turn_id": "turn_weather",
+                "weather": {
+                    "condition": "cloudy",
+                    "temperature_text": "26°C",
+                    "summary": "今天多云。",
+                },
+            },
+        )
+    )
+
+    action = next(event for event in events if event["type"] == "action")["data"]
+    assert action["name"] == "show_weather"
+    assert action["source_turn_id"] == "turn_weather"
+    assert action["payload"]["weather"]["condition"] == "cloudy"
+    assert action["payload"]["weather"]["summary"] == "今天多云。"
 
 
 def test_existing_care_plan_guides_safe_follow_up_turn(tmp_path):

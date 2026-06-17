@@ -1,0 +1,12 @@
+{
+  "elder_user_id": "elder_001",
+  "status": "completed",
+  "latest_turn_id": "turn_weather",
+  "running_job_id": null,
+  "last_completed_job_id": "planner_cc4eac0844dd42f7aa5e84d5f4052b53",
+  "last_discarded_job_id": null,
+  "last_error": null,
+  "last_review_status": "failed",
+  "last_used_fallback": true,
+  "updated_at": "2026-06-17T07:47:35.607812Z"
+}

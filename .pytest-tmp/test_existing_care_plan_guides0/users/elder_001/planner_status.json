@@ -1,0 +1,12 @@
+{
+  "elder_user_id": "elder_001",
+  "status": "completed",
+  "latest_turn_id": "turn_003",
+  "running_job_id": null,
+  "last_completed_job_id": "planner_5fdf7bddd2824cc1b898838564dae969",
+  "last_discarded_job_id": null,
+  "last_error": null,
+  "last_review_status": "failed",
+  "last_used_fallback": true,
+  "updated_at": "2026-06-17T07:47:36.000762Z"
+}

@@ -1,4 +1,5 @@
 from typing import Dict, Any
+import asyncio
 import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,6 +10,7 @@ from src.utils.logger import logger
 from src.utils.rag_helper import RAGHelper
 from src.tools.professional_skills import ProfessionalSkills
 from src.services.user_context_service import UserContextService
+from src.agents.companion_prompt import build_companion_system_prompt, risk_from_context, stage_from_context
 
 class MedicalAgent:
     def __init__(
@@ -43,7 +45,13 @@ class MedicalAgent:
         memory_context = context.get("memory_context", "")
 
         if self._is_emergency_phrase(input_text):
-            return self._build_emergency_response(input_text, "high")
+            return await self._build_emergency_response(
+                input_text,
+                "high",
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+            )
         
         # 1. 分析意图与健康状况
         analysis = await self._analyze_health_intent(input_text)
@@ -55,21 +63,38 @@ class MedicalAgent:
         }
 
         if analysis.get("is_emergency"):
-            return self._build_emergency_response(input_text, "high")
+            return await self._build_emergency_response(
+                input_text,
+                "high",
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+            )
         
         elif analysis.get("intent") == "medication_query":
-            # ??????????MedicationPlan ??????? profile.medications ???????
+            # 优先读取 MedicationPlan，旧 profile.medications 仅作兼容回退
             medication_summary = self._recorded_medication_summary(context, profile)
-            if not medication_summary:
-                response_data["content"] = "???????????????????????????????????"
-            else:
-                response_data["content"] = f"??????????????{medication_summary}???????????????????????????????????????"
+            response_data["content"] = await self._generate_structured_health_reply(
+                intent="medication_query",
+                input_text=input_text,
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+                facts={"medication_summary": medication_summary},
+            )
 
         elif analysis.get("intent") == "symptom_report":
             # 记录不适，不做诊断或医疗处置建议
             symptom = analysis.get("symptom", "未知不适")
             symptom_text = self._format_symptom(symptom)
-            response_data["content"] = f"我先帮您记下：{symptom_text}。咱们先慢一点，我可以帮您通知家里人一起确认情况。"
+            response_data["content"] = await self._generate_structured_health_reply(
+                intent="symptom_report",
+                input_text=input_text,
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+                facts={"symptom_text": symptom_text},
+            )
             response_data["risk_level"] = "medium"
             # 更新画像中的健康状况
             self._record_health_condition(symptom, context)
@@ -84,6 +109,112 @@ class MedicalAgent:
             )
 
         return self._finalize_response(response_data)
+
+    async def astream_response(self, input_text: str, context: Dict[str, Any] = None):
+        logger.info(f"MedicalAgent streaming received: {input_text}")
+        context = context or {}
+        profile = context.get("user_profile") or self.rag_helper.get_user_profile()
+        recent_history_text = context.get("recent_history_text", "暂无最近对话")
+        memory_context = context.get("memory_context", "")
+        response_data = {
+            "content": "",
+            "action": "none",
+            "risk_level": "safe",
+        }
+
+        async def emit_text(text: str) -> None:
+            for token in self._chunk_text(text):
+                response_data["content"] += token
+                yield_items.append({"type": "token", "data": token})
+
+        async def emit_token(token: str) -> None:
+            if token:
+                response_data["content"] += token
+                yield_items.append({"type": "token", "data": token})
+
+        async def drain(awaitable):
+            task = __import__("asyncio").create_task(awaitable)
+            while not task.done() or yield_items:
+                while yield_items:
+                    yield yield_items.pop(0)
+                if not task.done():
+                    await __import__("asyncio").sleep(0)
+            task.result()
+
+        yield_items = []
+
+        if self._is_emergency_phrase(input_text):
+            response_data.update(await self._build_emergency_response(
+                input_text,
+                "high",
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+            ))
+            await emit_text(response_data.get("content", ""))
+            while yield_items:
+                yield yield_items.pop(0)
+            yield {"type": "sos", "data": bool(response_data.get("sos"))}
+            yield {"type": "done", "data": response_data}
+            return
+
+        analysis = await self._analyze_health_intent(input_text)
+        if analysis.get("is_emergency"):
+            response_data.update(await self._build_emergency_response(
+                input_text,
+                "high",
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+            ))
+            await emit_text(response_data.get("content", ""))
+            while yield_items:
+                yield yield_items.pop(0)
+            yield {"type": "sos", "data": bool(response_data.get("sos"))}
+            yield {"type": "done", "data": response_data}
+            return
+
+        if analysis.get("intent") == "medication_query":
+            medication_summary = self._recorded_medication_summary(context, profile)
+            response_data["content"] = await self._generate_structured_health_reply(
+                intent="medication_query",
+                input_text=input_text,
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+                facts={"medication_summary": medication_summary},
+            )
+            response_data = self._finalize_response(response_data)
+            for token in self._chunk_text(response_data["content"]):
+                yield {"type": "token", "data": token}
+        elif analysis.get("intent") == "symptom_report":
+            symptom = analysis.get("symptom", "未知不适")
+            symptom_text = self._format_symptom(symptom)
+            response_data["content"] = await self._generate_structured_health_reply(
+                intent="symptom_report",
+                input_text=input_text,
+                profile=profile,
+                recent_history_text=recent_history_text,
+                memory_context=memory_context,
+                facts={"symptom_text": symptom_text},
+            )
+            response_data["risk_level"] = "medium"
+            self._record_health_condition(symptom, context)
+            response_data = self._finalize_response(response_data)
+            for token in self._chunk_text(response_data["content"]):
+                yield {"type": "token", "data": token}
+        else:
+            async for item in drain(self._generate_health_advice(
+                input_text,
+                profile,
+                recent_history_text,
+                memory_context,
+                on_token=emit_token,
+            )):
+                yield item
+            response_data = self._finalize_response(response_data)
+
+        yield {"type": "done", "data": response_data}
 
     def _record_health_condition(self, symptom: Any, context: Dict[str, Any]) -> None:
         user_context_service = getattr(self, "user_context_service", None)
@@ -111,7 +242,7 @@ class MedicalAgent:
                 ]
                 formatted = [item for item in formatted if item]
                 if formatted:
-                    return "?".join(formatted)
+                    return "；".join(formatted)
 
         meds = profile.get("medications", []) if isinstance(profile, dict) else []
         if not meds:
@@ -122,12 +253,12 @@ class MedicalAgent:
                 name = str(item.get("name") or "").strip()
                 time_text = str(item.get("time") or item.get("schedule") or "").strip()
                 if name and time_text:
-                    parts.append(f"{name}?{time_text}?")
+                    parts.append(f"{name}（{time_text}）")
                 elif name:
                     parts.append(name)
             elif str(item).strip():
                 parts.append(str(item).strip())
-        return "?".join(parts)
+        return "；".join(parts)
 
     def _format_medication_plan_for_reply(self, plan: Any) -> str:
         name = str(self._field_value(plan, "name") or "").strip()
@@ -142,8 +273,8 @@ class MedicalAgent:
         if instruction:
             pieces.append(instruction)
         if schedule_text:
-            pieces.append(f"???{schedule_text}")
-        return "?".join(pieces)
+            pieces.append(f"时间：{schedule_text}")
+        return "；".join(pieces)
 
     def _field_value(self, obj: Any, field: str, default: Any = "") -> Any:
         if isinstance(obj, dict):
@@ -167,11 +298,12 @@ class MedicalAgent:
                 items.append(time_text)
             elif label:
                 items.append(label)
-        return "?".join(items)
+        return "、".join(items)
 
     async def _analyze_health_intent(self, text: str) -> Dict:
         prompt = ChatPromptTemplate.from_template("""
-        你是健康关怀意图分类器。只做意图与紧急程度识别，不生成诊断、治疗或用药建议。
+        你是小暖的健康关怀意图识别阶段。只做意图与紧急程度识别，不给老人回复。
+        不生成诊断、治疗或用药建议；只抽取老人明确说出的症状或用药问题。
         输入: {text}
         
         输出 JSON (无 Markdown):
@@ -184,31 +316,95 @@ class MedicalAgent:
         chain = prompt | self.llm | JsonOutputParser()
         return await chain.ainvoke({"text": text})
 
-    async def _generate_health_advice(self, text: str, profile: Dict[str, Any], recent_history_text: str, memory_context: str) -> str:
-        prompt = ChatPromptTemplate.from_template("""
-        你是健康关怀记录与已知医嘱提醒助手。请用**口语**回应老人的健康相关问题。
-        老人画像: {profile}
-        最近对话: {recent_history_text}
-        补充记忆: {memory_context}
-
-        要求：
-        1. 默认用2到3句话回答，说明可以稍微完整一点，最多不超过4句话。
-        2. 不做诊断命名，不说“您这是X病”。
-        3. 不给出就医建议、治疗处置、用药调整、加减药或补服建议。
-        4. 如果涉及用药，只能基于已记录信息，并使用“按记录 / 已记录”的表述。
-        5. 语气亲切、关怀；不列点，不用Markdown，直接说。
-        
-        问题: {text}
-        回答:
-        """)
+    async def _generate_health_advice(self, text: str, profile: Dict[str, Any], recent_history_text: str, memory_context: str, on_token=None) -> str:
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                build_companion_system_prompt(
+                    phase="medical_reply",
+                    stage="medical.safety_check",
+                    risk_tier="medium",
+                    task="用口语回应老人的健康相关问题，重点是记录、安抚和基于已知记录的提醒。",
+                    extra_rules=[
+                        "不做诊断命名，不说“您这是X病”。",
+                        "不提供就医建议、治疗处置、用药调整、加减药或补服建议。",
+                        "涉及用药时，只能基于已记录信息，并使用“按记录 / 已记录”的表述。",
+                        "默认2到3句话，最多4句话。",
+                    ],
+                ),
+            ),
+            (
+                "human",
+                "老人画像: {profile}\n最近对话: {recent_history_text}\n补充记忆: {memory_context}\n\n问题: {text}\n请直接回复老人。",
+            ),
+        ])
         chain = prompt | self.llm
-        response = await chain.ainvoke({
+        payload = {
             "text": text,
             "profile": json.dumps(profile, ensure_ascii=False),
             "recent_history_text": recent_history_text,
             "memory_context": memory_context or "暂无"
+        }
+        if on_token:
+            content = ""
+            async for chunk in chain.astream(payload):
+                token = getattr(chunk, "content", "") or ""
+                if token:
+                    content += token
+                    await on_token(token)
+            return self.safety_policy.sanitize_response(content)
+
+        response = await chain.ainvoke(payload)
+        return self.safety_policy.sanitize_response(response.content)
+
+    async def _generate_structured_health_reply(
+        self,
+        *,
+        intent: str,
+        input_text: str,
+        profile: Dict[str, Any],
+        recent_history_text: str,
+        memory_context: str,
+        facts: Dict[str, Any],
+    ) -> str:
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                build_companion_system_prompt(
+                    phase=f"medical_{intent}_reply",
+                    stage="medical.safety_check",
+                    risk_tier="medium",
+                    task=(
+                        "根据系统事实生成健康场景下的老人端回复。"
+                        "只能使用事实字段，不能补充未记录的药物、症状、诊断或处置。"
+                    ),
+                    extra_rules=[
+                        "只输出1到2句自然中文。",
+                        "medication_summary 为空时，说明当前上下文没有已记录用药安排，并温和建议补充记录。",
+                        "有 medication_summary 时，只按已记录信息复述，不能建议补服、停药或改药。",
+                        "symptom_report 时，确认已记下明确症状，建议和家人/社区一起确认，不做诊断。",
+                    ],
+                ),
+            ),
+            (
+                "human",
+                "老人画像: {profile}\n最近对话: {recent_history_text}\n补充记忆: {memory_context}\n老人刚才说: {input_text}\n意图: {intent}\n系统事实: {facts}\n\n请直接回复老人。",
+            ),
+        ])
+        chain = prompt | self.llm
+        response = await chain.ainvoke({
+            "intent": intent,
+            "input_text": input_text,
+            "profile": json.dumps(profile, ensure_ascii=False),
+            "recent_history_text": recent_history_text,
+            "memory_context": memory_context or "暂无",
+            "facts": json.dumps(facts, ensure_ascii=False),
         })
         return self.safety_policy.sanitize_response(response.content)
+
+    def _chunk_text(self, text: str, chunk_size: int = 24):
+        value = str(text or "")
+        return [value[index:index + chunk_size] for index in range(0, len(value), chunk_size)]
 
     def _finalize_response(self, response_data: Dict[str, Any]) -> Dict[str, Any]:
         finalized = dict(response_data or {})
@@ -236,16 +432,74 @@ class MedicalAgent:
     def _is_emergency_phrase(self, text: str) -> bool:
         return any(keyword in text for keyword in self.emergency_keywords)
 
-    def _build_emergency_response(self, input_text: str, level: str) -> Dict[str, Any]:
-        tool_output = self._trigger_emergency_contact(input_text, level)
+    async def _build_emergency_response(
+        self,
+        input_text: str,
+        level: str,
+        *,
+        profile: Dict[str, Any],
+        recent_history_text: str,
+        memory_context: str,
+    ) -> Dict[str, Any]:
+        tool_output = await asyncio.to_thread(self._trigger_emergency_contact, input_text, level)
+        content = await self._generate_emergency_reply(
+            input_text=input_text,
+            profile=profile,
+            recent_history_text=recent_history_text,
+            memory_context=memory_context,
+            tool_output=tool_output,
+        )
         logger.warning(f"EMERGENCY ALERT: {input_text}")
         return self._finalize_response({
-            "content": "您先别慌，我已经马上联系家里人了。您先尽量别乱动，慢慢呼吸，我陪着您。",
+            "content": content,
             "action": "alert_family",
             "risk_level": "high",
             "sos": bool(tool_output.get("trigger_sos", True)),
             "emergency_contact_result": tool_output
         })
+
+    async def _generate_emergency_reply(
+        self,
+        *,
+        input_text: str,
+        profile: Dict[str, Any],
+        recent_history_text: str,
+        memory_context: str,
+        tool_output: Dict[str, Any],
+    ) -> str:
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                build_companion_system_prompt(
+                    phase="medical_emergency_reply",
+                    stage="medical.safety_check",
+                    risk_tier="high",
+                    task="生成急症/跌倒/呼吸困难场景下给老人的第一句和第二句稳定回应。",
+                    extra_rules=[
+                        "只输出1到2句，非常短、稳、直接。",
+                        "明确已经触发求助/家属确认时，可以说正在帮忙联系，但不要承诺现实中尚未完成的处置。",
+                        "不要给诊断、治疗、移动身体、吃药、喝水等处置建议。",
+                    ],
+                ),
+            ),
+            (
+                "human",
+                "老人画像: {profile}\n最近对话: {recent_history_text}\n补充记忆: {memory_context}\n老人刚才说: {input_text}\n求助动作结果: {tool_output}\n\n请直接回复老人。",
+            ),
+        ])
+        chain = prompt | self.llm
+        try:
+            response = await chain.ainvoke({
+                "input_text": input_text,
+                "profile": json.dumps(profile, ensure_ascii=False),
+                "recent_history_text": recent_history_text,
+                "memory_context": memory_context or "暂无",
+                "tool_output": json.dumps(tool_output, ensure_ascii=False),
+            })
+            return self.safety_policy.sanitize_response(response.content, risk_tier="high")
+        except Exception as exc:
+            logger.warning(f"Emergency reply generation failed: {exc}")
+            return ""
 
     def _trigger_emergency_contact(self, reason: str, level: str) -> Dict[str, Any]:
         try:
@@ -266,7 +520,7 @@ class MedicalAgent:
             "level": level,
             "reason_summary": "elder_reported_emergency",
             "family_message": f"老人发出紧急求助：{reason}",
-            "community_message": "有老人发出紧急求助，请社区值守端关注。",
+            "community_message": "",
             "community_raw_quote_visible": False,
             "actions": []
         }

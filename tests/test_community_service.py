@@ -2,6 +2,8 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from src.schemas.community import (
+    CommunityActivityUpdateRequest,
+    CommunityAnnouncementUpdateRequest,
     CommunityActivityCreateRequest,
     CommunityAnnouncementCreateRequest,
 )
@@ -124,6 +126,61 @@ def test_activities_filter_expired_items_and_sort_by_priority(tmp_path):
     assert all(item.id != "expired_activity" for item in active)
 
 
+def test_announcements_update_and_delete_are_soft_cancelled(tmp_path):
+    service, _, _ = _services(tmp_path)
+    service.create_announcement(
+        CommunityAnnouncementCreateRequest(
+            community_id="community_001",
+            id="notice",
+            title="Old title",
+            content="Old content",
+            priority=1,
+        )
+    )
+
+    updated = service.update_announcement(
+        "community_001",
+        "notice",
+        CommunityAnnouncementUpdateRequest(title="New title", priority=5),
+    )
+    deleted = service.delete_announcement("community_001", "notice")
+    active = service.list_announcements("community_001")
+    all_items = service.list_announcements("community_001", only_active=False)
+
+    assert updated.title == "New title"
+    assert updated.priority == 5
+    assert deleted.status == "cancelled"
+    assert active == []
+    assert all_items[0].status == "cancelled"
+
+
+def test_activities_update_and_delete_are_soft_cancelled(tmp_path):
+    service, _, _ = _services(tmp_path)
+    now = datetime(2026, 5, 16, 8, 0, tzinfo=timezone.utc)
+    service.create_activity(
+        CommunityActivityCreateRequest(
+            community_id="community_001",
+            id="activity",
+            title="Old activity",
+            valid_until=now + timedelta(hours=2),
+        ),
+        now=now,
+    )
+
+    updated = service.update_activity(
+        "community_001",
+        "activity",
+        CommunityActivityUpdateRequest(title="New activity", location="Room 2"),
+        now=now,
+    )
+    deleted = service.delete_activity("community_001", "activity", now=now)
+
+    assert updated.title == "New activity"
+    assert updated.location == "Room 2"
+    assert deleted.status == "cancelled"
+    assert service.list_activities("community_001", now=now) == []
+
+
 def test_community_crisis_alerts_never_expose_raw_quote(tmp_path):
     service, relay, assessment_service = _services(tmp_path)
     raw_text = "\u6211\u4e0d\u60f3\u6d3b\u4e86"
@@ -141,6 +198,23 @@ def test_community_crisis_alerts_never_expose_raw_quote(tmp_path):
     assert alerts[0]["raw_quotes"] == []
     assert alerts[0]["payload"]["raw_quote_visible"] is False
     assert raw_text not in serialized
+
+
+def test_community_crisis_alerts_can_be_grouped_by_elder_and_event(tmp_path):
+    service, relay, assessment_service = _services(tmp_path)
+    for elder_user_id, turn_id in [("elder_001", "turn_001"), ("elder_002", "turn_002")]:
+        assessment = assessment_service.assess_text(
+            "\u6211\u4e0d\u60f3\u6d3b\u4e86",
+            {"user_id": elder_user_id, "turn_id": turn_id},
+        )
+        relay.create_from_assessment(assessment)
+
+    by_elder = service.list_crisis_alerts_by_community("community_001", group_by="elder")
+    by_event = service.list_crisis_alerts_by_community("community_001", group_by="event")
+
+    assert by_elder["total"] == 2
+    assert {group["group_key"] for group in by_elder["groups"]} == {"elder_001", "elder_002"}
+    assert all(group["group_by"] == "event" for group in by_event["groups"])
 
 
 def test_only_crisis_level_messages_are_visible_to_community_crisis_alerts(tmp_path):

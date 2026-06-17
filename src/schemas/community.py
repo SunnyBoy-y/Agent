@@ -54,6 +54,16 @@ class CommunityAnnouncementCreateRequest(BaseModel):
     priority: int = Field(default=1, ge=0)
 
 
+class CommunityAnnouncementUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    tags: Optional[List[str]] = None
+    valid_from: Optional[datetime] = None
+    valid_until: Optional[datetime] = None
+    priority: Optional[int] = Field(default=None, ge=0)
+    status: Optional[CommunityItemStatus] = None
+
+
 class CommunityActivityCreateRequest(BaseModel):
     community_id: str
     id: Optional[str] = None
@@ -64,3 +74,14 @@ class CommunityActivityCreateRequest(BaseModel):
     tags: List[str] = Field(default_factory=list)
     valid_until: datetime
     priority: int = Field(default=1, ge=0)
+
+
+class CommunityActivityUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    time_text: Optional[str] = None
+    location: Optional[str] = None
+    tags: Optional[List[str]] = None
+    valid_until: Optional[datetime] = None
+    priority: Optional[int] = Field(default=None, ge=0)
+    status: Optional[CommunityItemStatus] = None

@@ -36,6 +36,11 @@ class Config:
     
     # 模型配置
     MODEL_NAME = os.getenv("MODEL_NAME", "qwen-plus")
+    CHAT_STREAM_MODEL = os.getenv("CHAT_STREAM_MODEL", MODEL_NAME)
+    CHAT_STREAM_TIMEOUT = float(os.getenv("CHAT_STREAM_TIMEOUT", "45.0"))
+    FIRST_RESPONSE_MODEL = os.getenv("FIRST_RESPONSE_MODEL", MODEL_NAME)
+    FIRST_RESPONSE_TIMEOUT = float(os.getenv("FIRST_RESPONSE_TIMEOUT", "1.2"))
+    FAST_COMPANION_TIMEOUT = float(os.getenv("FAST_COMPANION_TIMEOUT", "12.0"))
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-v4")
 
     # 服务配置

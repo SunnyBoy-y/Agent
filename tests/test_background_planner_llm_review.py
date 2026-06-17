@@ -142,6 +142,7 @@ def test_background_planner_persists_action_contract_and_frontend_session(tmp_pa
 
         assert len(sessions) == 1
         assert sessions[0].action_type == "music"
+        assert sessions[0].status == "pending"
         assert sessions[0].payload["idempotency_key"] == action["idempotency_key"]
         assert sessions[0].payload["target_channel"] == "frontend"
         assert sessions[0].payload["visibility_scope"] == "elder"

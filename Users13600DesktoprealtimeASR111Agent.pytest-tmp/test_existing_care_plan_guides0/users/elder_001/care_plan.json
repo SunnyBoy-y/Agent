@@ -1,0 +1,17 @@
+{
+  "elder_user_id": "elder_001",
+  "version": 1,
+  "source_turn_id": "turn_prev",
+  "active_domain": "general",
+  "risk_tier": "medium",
+  "current_stage": "companionship",
+  "stage_goal": "",
+  "next_turn_goal": "",
+  "target_agent": "mental_health_agent",
+  "allowed_interventions": [],
+  "blocked_interventions": [],
+  "abort_conditions": [],
+  "expires_after_turns": 2,
+  "updated_by": "system",
+  "updated_at": "2026-06-17T07:31:34.731958Z"
+}

@@ -1,30 +1,80 @@
+import json
 import re
-from typing import Dict, Any
-from langchain_openai import ChatOpenAI
+from typing import Any, Dict, Optional
+
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
 from src.config import Config
 from src.services.context_guard import ContextGuard
 from src.utils.logger import logger
+from src.agents.companion_prompt import build_companion_system_prompt
+
 
 class RouterAgent:
-    MUSIC_REQUEST_PATTERNS = [
-        r"(放|播)(一)?首",
-        r"来(一)?首",
-        r"听(首)?歌",
-        r"听(点)?音乐",
-        r"播放.*(歌|音乐)",
-        r"想听.*(歌|音乐)",
-    ]
+    """Fast intent router with rule protection and LLM fallback."""
+
+    AGENTS = {
+        "medical_agent",
+        "daily_life_agent",
+        "interest_agent",
+        "mental_health_agent",
+        "antifraud_agent",
+        "emotional_agent",
+    }
+
     MUSIC_KEYWORDS = [
         "放歌",
         "放音乐",
-        "播歌",
-        "播放歌曲",
+        "播放",
+        "听歌",
         "音乐",
         "歌曲",
         "歌单",
         "唱片",
-        "邓丽君",
+        "来一首",
+        "点一首",
+    ]
+    MUSIC_PATTERNS = [
+        r"(放|播|听|点|来).{0,6}(歌|音乐|曲子|唱片)",
+        r"(想听|帮我放|给我放).{0,12}(歌|音乐|曲子)",
+    ]
+    EMERGENCY_KEYWORDS = [
+        "救命",
+        "摔倒",
+        "跌倒",
+        "起不来",
+        "胸口疼",
+        "胸闷",
+        "喘不上气",
+        "呼吸困难",
+        "快不行了",
+    ]
+    MEDICAL_KEYWORDS = [
+        "吃药",
+        "药",
+        "血压",
+        "血糖",
+        "头疼",
+        "头痛",
+        "发烧",
+        "疼",
+        "痛",
+        "晕",
+        "不舒服",
+    ]
+    DAILY_PATTERNS = [
+        r"我(今天|刚才|刚刚|中午|晚上|早上).{0,8}(吃|喝|洗澡|散步|出门|去了|买了)",
+        r"(记录|记一下|帮我记).{0,12}(吃|喝|服药|散步|睡觉|去了|买了)",
+    ]
+    STRONG_FRAUD_KEYWORDS = [
+        "中奖",
+        "法院传票",
+        "公安局打电话",
+        "让我转账",
+        "安全账户",
+        "银行卡冻结",
+        "验证码",
     ]
 
     def __init__(self):
@@ -32,43 +82,32 @@ class RouterAgent:
             openai_api_key=Config.OPENAI_API_KEY,
             openai_api_base=Config.OPENAI_API_BASE,
             model_name=Config.MODEL_NAME,
-            temperature=0.0 # 路由需要极其精确
+            temperature=0.0,
+            timeout=20,
+            max_retries=2,
         )
-        self.agents = [
-            "medical_agent",
-            "daily_life_agent",
-            "interest_agent",
-            "mental_health_agent",
-            "antifraud_agent",
-            "emotional_agent" # 默认/闲聊/综合
-        ]
-
+        self.agents = list(self.AGENTS)
         self.context_guard = ContextGuard()
 
-    async def route(self, input_text: str, context: Dict[str, Any] = None) -> str:
-        """
-        分析用户意图，选择最合适的智能体（异步版本，保留 LLM 路由兜底）
-        """
-        logger.info(f"RouterAgent routing: {input_text}")
+    async def route(self, input_text: str, context: Optional[Dict[str, Any]] = None) -> str:
+        """Route by protected rules first, then ask the LLM for ambiguous turns."""
         context = context or {}
-        rule_based_route = self._route_by_rules(input_text, context=context)
+        text = str(input_text or "").strip()
+        logger.info(f"RouterAgent routing: {text}")
+
+        rule_based_route = self._route_by_rules(text, context=context)
         if rule_based_route:
             logger.info(f"Rule-based route selected: {rule_based_route}")
             return rule_based_route
 
-        # 理论上不会到达此处（_route_by_rules 永远有返回值）
-        # 保留 LLM 路由作为兜底
-        return await self._llm_route(input_text, context)
+        return await self._llm_route(text, context)
 
-    def route_sync(self, input_text: str, context: Dict[str, Any] = None) -> str:
-        """
-        同步路由：纯规则匹配，不调 LLM。延迟 < 1ms。
-        覆盖 95%+ 的用户输入。
-        """
-        return self._route_by_rules(input_text, context=context)
+    def route_sync(self, input_text: str, context: Optional[Dict[str, Any]] = None) -> str:
+        """Synchronous protected-rule route for callers that cannot await."""
+        return self._route_by_rules(input_text, context=context) or "emotional_agent"
 
-    def _route_by_rules(self, input_text: str, context: Dict[str, Any] = None) -> str:
-        text = (input_text or "").strip()
+    def _route_by_rules(self, input_text: str, context: Optional[Dict[str, Any]] = None) -> str:
+        text = str(input_text or "").strip()
         if not text:
             return "emotional_agent"
 
@@ -77,90 +116,148 @@ class RouterAgent:
         if guarded_route:
             return guarded_route
 
-        # === 必须走专家的硬规则 ===
-        emergency_keywords = ["救命", "摔倒", "跌倒", "起不来", "胸口疼", "胸闷", "喘不上气", "呼吸困难", "快不行了"]
-        if any(keyword in text for keyword in emergency_keywords):
+        if self._contains_any(text, self.EMERGENCY_KEYWORDS):
             return "medical_agent"
-        if "药" in text or "疼" in text or "晕" in text:
-            return "medical_agent"
-
         if self._is_music_request(text):
             return "interest_agent"
-
-        # 诈骗关键词：仍需 LLM 确认（避免误判），但强信号直接给 antifraud
-        strong_fraud_kw = ["中奖了", "法院传票", "公安局打电话", "让我转账"]
-        if any(kw in text for kw in strong_fraud_kw):
+        if self._contains_any(text, self.STRONG_FRAUD_KEYWORDS):
             return "antifraud_agent"
-
-        # === 明确需要特定智能体的信号 ===
-        # 生活记录（吃了啥/干了啥/去了哪）
-        daily_patterns = [
-            r"我今天吃了", r"我刚吃了", r"中午吃了", r"晚上吃了", r"早上吃了",
-            r"我今天去了", r"我刚去了", r"去了公园", r"去了超市", r"去了菜市场",
-        ]
-        if any(re.search(p, text) for p in daily_patterns):
+        if any(re.search(pattern, text) for pattern in self.DAILY_PATTERNS):
             return "daily_life_agent"
 
-        # === 其他所有情况：直接走 emotional_agent，不再调 LLM 路由 ===
-        # emotional_agent 是默认综合智能体，覆盖：
-        #   闲聊、情感陪伴、想念亲人、日常问候、查看照片/视频、心理倾诉
-        # 这样每次请求省掉一次 LLM 调用（省 1-2s 首字延迟）
-        return "emotional_agent"
+        # Keep only high-confidence keyword routes. Ambiguous health or mood text
+        # should still reach LLM routing so the answer fits the current scene.
+        if self._looks_like_direct_medical_query(text):
+            return "medical_agent"
+        if self._looks_like_simple_companionship(text):
+            return "emotional_agent"
+
+        return ""
+
+    def _looks_like_direct_medical_query(self, text: str) -> bool:
+        if not self._contains_any(text, self.MEDICAL_KEYWORDS):
+            return False
+        query_markers = ("怎么办", "怎么吃", "要不要", "能不能", "该不该", "是不是", "需要")
+        return any(marker in text for marker in query_markers)
 
     def _is_music_request(self, input_text: str) -> bool:
-        if any(keyword in input_text for keyword in self.MUSIC_KEYWORDS):
+        if self._contains_any(input_text, self.MUSIC_KEYWORDS):
             return True
-        return any(re.search(pattern, input_text) for pattern in self.MUSIC_REQUEST_PATTERNS)
+        return any(re.search(pattern, input_text) for pattern in self.MUSIC_PATTERNS)
+
+    def _looks_like_simple_companionship(self, text: str) -> bool:
+        normalized = str(text or "").strip().lower()
+        if not normalized or len(normalized) > 18:
+            return False
+        if normalized in {"hi", "hello", "hey"}:
+            return True
+        companionship_markers = (
+            "\u4f60\u597d",  # 你好
+            "\u60a8\u597d",  # 您好
+            "\u5728\u5417",  # 在吗
+            "\u55e8",
+            "\u54c8\u55bd",
+            "\u4f60\u54c8",
+            "\u5c0f\u6696",
+        )
+        if any(marker in normalized for marker in companionship_markers):
+            return True
+
+        blockers = (
+            "\u6551\u547d", "\u6454", "\u75bc", "\u75db", "\u80f8", "\u5598",
+            "\u836f", "\u8f6c\u8d26", "\u94b1", "\u9a8c\u8bc1\u7801",
+            "\u7167\u7247", "\u76f8\u518c", "\u97f3\u4e50", "\u653e\u6b4c",
+            "\u542c\u6b4c", "\u5929\u6c14", "\u600e\u4e48", "\u4e3a\u4ec0\u4e48",
+        )
+        if any(marker in normalized for marker in blockers):
+            return False
+        return len(normalized) <= 8
 
     async def _llm_route(self, input_text: str, context: Dict[str, Any]) -> str:
-        """LLM 路由兜底（仅在规则无法判定时调用）"""
         context_hint = self._build_context_hint(context)
-        prompt = ChatPromptTemplate.from_template("""
-        你是一个智能体路由系统。请分析老人的输入，选择一个最合适的处理专员。
-
-        可选专员:
-        - medical_agent: 身体健康、吃药提醒、身体不适、看病就医。
-        - daily_life_agent: 记录生活琐事（如吃了啥、去了哪）、查询过去做过的事。
-        - interest_agent: 讨论兴趣爱好（戏曲、书法、园艺、下棋、广场舞等）。
-        - mental_health_agent: 表达孤独、焦虑、抑郁、想找人倾诉心理问题。
-        - antifraud_agent: 涉及钱财、中奖、公检法、转账、陌生人电话、怀疑被骗。
-        - emotional_agent: 普通闲聊、情感陪伴、想念亲人、日常问候、查看照片/视频、无法归类。
-
-        老人说: {input_text}
-        当前上下文:
-        {context_hint}
-
-        请仅输出专员名称 (如 medical_agent)，不要有任何解释或标点。
-        """)
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    build_companion_system_prompt(
+                        phase="intent_router",
+                        stage=(context.get("care_plan") or {}).get("current_stage") or "companionship",
+                        risk_tier=(context.get("risk_assessment") or {}).get("risk_tier") or (context.get("care_plan") or {}).get("risk_tier") or "safe",
+                        task="Choose exactly one agent name from the allowed list. Use current input first, then scene and memory.",
+                        extra_rules=[
+                            "Return only one agent name. Do not explain.",
+                            "Do not route based only on old memory if the current input is ordinary companionship.",
+                            "Crisis/self-harm goes to mental_health_agent; physical emergency or medication logistics goes to medical_agent.",
+                        ],
+                    ),
+                ),
+                (
+                    "human",
+                    "Allowed agents: medical_agent, daily_life_agent, interest_agent, "
+                    "mental_health_agent, antifraud_agent, emotional_agent\n\n"
+                    "Routing guide:\n"
+                    "- medical_agent: physical symptoms, medication, health logistics.\n"
+                    "- daily_life_agent: daily records, meals, errands, routines.\n"
+                    "- interest_agent: music, photos, hobbies, entertainment, art, games.\n"
+                    "- mental_health_agent: anxiety, loneliness, depression, crisis, self-harm.\n"
+                    "- antifraud_agent: money, transfer, suspicious calls, scams.\n"
+                    "- emotional_agent: ordinary companionship or unclear cases.\n\n"
+                    "User input: {input_text}\n"
+                    "Context: {context_hint}\n"
+                    "Return only one agent name.",
+                ),
+            ]
+        )
         try:
             chain = prompt | self.llm
-            response = await chain.ainvoke({
-                "input_text": input_text,
-                "context_hint": context_hint
-            })
-            selected_agent = response.content.strip()
-            if selected_agent not in self.agents:
-                logger.warning(f"Router selected unknown agent: {selected_agent}, falling back to emotional_agent")
+            response = await chain.ainvoke(
+                {
+                    "input_text": input_text,
+                    "context_hint": context_hint,
+                }
+            )
+            selected_agent = self._extract_agent_name(str(getattr(response, "content", "") or ""))
+            if selected_agent not in self.AGENTS:
+                logger.warning(f"Router selected unknown agent: {selected_agent}")
                 return "emotional_agent"
             logger.info(f"LLM routed to: {selected_agent}")
             return selected_agent
-        except Exception as e:
-            logger.error(f"LLM routing failed: {e}")
+        except Exception as exc:
+            logger.error(f"LLM routing failed: {exc}")
             return "emotional_agent"
 
     def _build_context_hint(self, context: Dict[str, Any]) -> str:
         if not context:
-            return "暂无额外上下文"
+            return "no extra context"
 
         profile = context.get("user_profile") or {}
         visual = context.get("visual_analysis") or {}
-        parts = [
-            f"画像姓名: {profile.get('name', '未知')}",
-            f"健康情况: {profile.get('health_condition', []) or '暂无'}",
-            f"兴趣偏好: {profile.get('preferences', []) or '暂无'}",
-            f"家庭成员: {profile.get('family_members', []) or '暂无'}",
-            f"视觉情绪: {visual.get('emotion', 'unknown')}",
-            f"语音转文字: {context.get('audio_transcript', '') or '无'}",
-            f"最近对话: {context.get('recent_history_text', '') or '暂无'}",
-        ]
-        return "\n".join(parts)
+        scene_context = context.get("scene_context") or {}
+        care_plan = context.get("care_plan") or {}
+        parts = {
+            "profile": {
+                "name": profile.get("name"),
+                "health_condition": profile.get("health_condition", []),
+                "preferences": profile.get("preferences", []),
+                "family_members": profile.get("family_members", []),
+            },
+            "scene_context": scene_context,
+            "care_plan": care_plan,
+            "visual_emotion": visual.get("emotion") if isinstance(visual, dict) else None,
+            "audio_transcript": context.get("audio_transcript") or "",
+            "recent_history": context.get("recent_history_text") or "",
+            "memory_context": context.get("memory_context") or "",
+        }
+        return json.dumps(parts, ensure_ascii=False)[:2400]
+
+    def _contains_any(self, text: str, markers) -> bool:
+        return any(marker in text for marker in markers)
+
+    def _extract_agent_name(self, text: str) -> str:
+        value = str(text or "").strip()
+        if value in self.AGENTS:
+            return value
+        for agent_name in self.AGENTS:
+            if agent_name in value:
+                return agent_name
+        return value.split()[0].strip(".,;:，。；：`'\"") if value else ""

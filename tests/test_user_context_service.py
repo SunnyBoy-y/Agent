@@ -33,6 +33,16 @@ def test_profile_update_ignores_body_user_id_and_dedupes_lists():
         assert service.get_profile("elder_b")["name"] == "unknown"
 
 
+def test_profile_update_ignores_non_mapping_updates():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        service = ProfileService(DataStore(temp_dir))
+        service.update_profile("elder_a", {"name": "A"})
+
+        profile = service.update_profile("elder_a", "not-a-dict")
+
+        assert profile["name"] == "A"
+
+
 def test_user_context_history_and_status_are_per_user():
     with tempfile.TemporaryDirectory() as temp_dir:
         context = UserContextService(DataStore(temp_dir))

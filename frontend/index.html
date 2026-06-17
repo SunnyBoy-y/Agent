@@ -1,0 +1,1071 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent FastAPI Debug Console</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Cpath d='M9 18.5c2.3 3.1 4.7 4.6 7.2 4.6 2.6 0 4.9-1.5 6.8-4.6M10 11.5h.1M22 11.5h.1' stroke='white' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f5f0;
+      --panel: #ffffff;
+      --ink: #1f2933;
+      --muted: #64748b;
+      --line: #ddd6c8;
+      --accent: #0f766e;
+      --accent-soft: #d8f3ef;
+      --warn: #b45309;
+      --danger: #b91c1c;
+      --ok: #15803d;
+      --code: #111827;
+      --code-bg: #f3f4f6;
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100svh;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 7px;
+      padding: 9px 12px;
+      cursor: pointer;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button.danger {
+      color: var(--danger);
+      border-color: #fecaca;
+      background: #fff7f7;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--ink);
+      padding: 9px 10px;
+      outline: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.5;
+    }
+
+    pre {
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      border-radius: 7px;
+      background: var(--code-bg);
+      color: var(--code);
+      line-height: 1.45;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 246px minmax(0, 1fr);
+      min-height: 100svh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: #fbfaf7;
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .brand {
+      padding: 4px 8px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav button {
+      width: 100%;
+      border-color: transparent;
+      background: transparent;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav button.active {
+      background: var(--accent-soft);
+      color: #0b5f59;
+      border-color: #b5e4de;
+    }
+
+    .side-fields {
+      margin-top: auto;
+      display: grid;
+      gap: 10px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .main {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-width: 0;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 180px auto auto;
+      gap: 12px;
+      align-items: end;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .72);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 118px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--warn);
+      box-shadow: 0 0 0 4px rgba(180, 83, 9, .12);
+    }
+
+    .dot.ok {
+      background: var(--ok);
+      box-shadow: 0 0 0 4px rgba(21, 128, 61, .12);
+    }
+
+    .content {
+      padding: 20px;
+      min-width: 0;
+    }
+
+    .view {
+      display: none;
+      animation: enter .2s ease;
+    }
+
+    .view.active { display: block; }
+
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(320px, .7fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-width: 0;
+    }
+
+    .section-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .section-body {
+      padding: 16px;
+    }
+
+    .chat-log {
+      height: min(58svh, 620px);
+      overflow: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: linear-gradient(#fff, #fff), var(--panel);
+    }
+
+    .msg {
+      max-width: 78%;
+      padding: 11px 13px;
+      border-radius: 8px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .msg.assistant {
+      align-self: flex-start;
+      background: #eef2f7;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .metric strong {
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .events {
+      display: grid;
+      gap: 8px;
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .event {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px;
+      background: #fff;
+      font-size: 12px;
+    }
+
+    .event b {
+      display: inline-block;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .table th, .table td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .table th {
+      color: var(--muted);
+      font-weight: 600;
+      background: #fbfaf7;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .item h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .endpoint-layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .endpoint-list {
+      max-height: calc(100svh - 178px);
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+    }
+
+    .endpoint-btn {
+      text-align: left;
+      display: grid;
+      gap: 4px;
+    }
+
+    .endpoint-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .method {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .side-fields { margin-top: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .topbar { grid-template-columns: 1fr; position: static; }
+      .workspace, .endpoint-layout, .grid.two { grid-template-columns: 1fr; }
+      .msg { max-width: 92%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Agent Console</h1>
+        <p>FastAPI 调试台</p>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="side-fields">
+        <div class="field">
+          <label for="baseUrl">Base URL</label>
+          <input id="baseUrl" value="">
+        </div>
+        <div class="field">
+          <label for="userId">老人 ID</label>
+          <input id="userId" value="user_001">
+        </div>
+        <div class="field">
+          <label for="childId">子女 ID</label>
+          <input id="childId" value="child_001">
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="field">
+          <label for="quickMessage">当前消息</label>
+          <input id="quickMessage" value="今天心里有点闷，想聊聊天">
+        </div>
+        <div class="field">
+          <label for="chatMode">链路模式</label>
+          <select id="chatMode">
+            <option value="">低延迟 chat1</option>
+            <option value="full_agent">完整 agent</option>
+          </select>
+        </div>
+        <button class="primary" id="topSend">发送</button>
+        <div class="status"><i class="dot" id="healthDot"></i><span id="healthText">未检查</span></div>
+      </div>
+
+      <div class="content">
+        <section class="view active" data-view="chat">
+          <div class="workspace">
+            <div class="section">
+              <div class="section-head">
+                <h2>流式聊天</h2>
+                <div class="toolbar">
+                  <button id="checkHealth">健康检查</button>
+                  <button id="clearChat">清空</button>
+                </div>
+              </div>
+              <div class="chat-log" id="chatLog"></div>
+              <div class="composer">
+                <input id="chatInput" value="今天心里有点闷，想聊聊天">
+                <button class="primary" id="sendChat">发送</button>
+              </div>
+            </div>
+            <div class="grid">
+              <div class="section">
+                <div class="section-head"><h2>本轮指标</h2></div>
+                <div class="section-body">
+                  <div class="metrics">
+                    <div class="metric"><span>首事件</span><strong id="firstEventLatency">-</strong></div>
+                    <div class="metric"><span>首 token</span><strong id="firstLatency">-</strong></div>
+                    <div class="metric"><span>链路</span><strong id="chainMode">-</strong></div>
+                    <div class="metric"><span>总耗时</span><strong id="totalLatency">-</strong></div>
+                    <div class="metric"><span>SSE 事件</span><strong id="eventCount">0</strong></div>
+                  </div>
+                </div>
+              </div>
+              <div class="section">
+                <div class="section-head">
+                  <h2>SSE 事件</h2>
+                  <button id="refreshTrace">刷新链路</button>
+                </div>
+                <div class="section-body"><div class="events" id="eventLog"></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="memory">
+          <div class="workspace">
+            <div class="section">
+              <div class="section-head">
+                <h2>记忆库</h2>
+                <button id="loadMemory">打开</button>
+              </div>
+              <div class="section-body grid">
+                <div>
+                  <div class="muted">上传给 Agent 的记忆上下文</div>
+                  <pre id="memoryContext">-</pre>
+                </div>
+                <div>
+                  <div class="muted">最近聊天</div>
+                  <pre id="recentHistory">-</pre>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-head"><h2>画像快照</h2></div>
+              <div class="section-body"><pre id="memoryProfile">-</pre></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="trace">
+          <div class="workspace">
+            <div class="section">
+              <div class="section-head">
+                <h2>调用链路</h2>
+                <button id="loadTrace">查看</button>
+              </div>
+              <div class="section-body grid">
+                <div>
+                  <div class="muted">路由与工具</div>
+                  <pre id="traceMain">-</pre>
+                </div>
+                <div>
+                  <div class="muted">模型输入</div>
+                  <pre id="llmInputs">-</pre>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-head"><h2>本轮请求</h2></div>
+              <div class="section-body"><pre id="lastRequest">-</pre></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="profile">
+          <div class="workspace">
+            <div class="section">
+              <div class="section-head">
+                <h2>人物画像</h2>
+                <div class="toolbar">
+                  <button id="getProfile">读取</button>
+                  <button class="primary" id="saveProfile">保存</button>
+                </div>
+              </div>
+              <div class="section-body">
+                <textarea id="profileBody" style="min-height: 360px"></textarea>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-head"><h2>响应</h2></div>
+              <div class="section-body"><pre id="profileResult">-</pre></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="reset">
+          <div class="workspace">
+            <div class="section">
+              <div class="section-head"><h2>清除画像</h2></div>
+              <div class="section-body grid">
+                <button class="danger" id="resetProfile">清除画像</button>
+                <label><input type="checkbox" id="includeLegacy" style="width:auto"> 同时清除 legacy RAG</label>
+                <button class="danger" id="resetMemory">清除当前用户记忆</button>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-head"><h2>结果</h2></div>
+              <div class="section-body"><pre id="resetResult">-</pre></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="other">
+          <div class="endpoint-layout">
+            <div class="section">
+              <div class="section-head"><h2>其他功能</h2></div>
+              <div class="section-body">
+                <div class="endpoint-list" id="endpointList"></div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-head">
+                <h2 id="endpointTitle">接口</h2>
+                <button class="primary" id="runEndpoint">调用</button>
+              </div>
+              <div class="section-body grid">
+                <div class="grid two">
+                  <div class="field">
+                    <label for="endpointPath">Path</label>
+                    <input id="endpointPath">
+                  </div>
+                  <div class="field">
+                    <label for="endpointQuery">Query JSON</label>
+                    <input id="endpointQuery" value="{}">
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="endpointBody">Body JSON</label>
+                  <textarea id="endpointBody">{}</textarea>
+                </div>
+                <pre id="endpointResult">-</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      events: [],
+      lastRequest: null,
+      selectedEndpoint: null,
+    };
+
+    const views = [
+      ["chat", "聊天框"],
+      ["memory", "记忆库"],
+      ["trace", "调用链路"],
+      ["profile", "人物画像"],
+      ["reset", "清除画像"],
+      ["other", "其他功能"],
+    ];
+
+    const endpoints = [
+      { group: "健康", method: "GET", path: "/health", query: {} },
+      { group: "聊天", method: "POST", path: "/api/chat1", body: { message: "今天心里有点闷，想聊聊天", user_id: "$user", context: { source: "debug_console", mode: "" } }, stream: true },
+      { group: "聊天", method: "POST", path: "/api/chat", body: { message: "我想听一首邓丽君的歌", user_id: "$user", context: { source: "debug_console", mode: "full_agent" } }, stream: true },
+      { group: "系统", method: "GET", path: "/api/system_status", query: { user_id: "$user" } },
+      { group: "Planner", method: "GET", path: "/api/planner/status", query: { elder_user_id: "$user" } },
+      { group: "用药", method: "GET", path: "/api/medication/plans", query: { elder_user_id: "$user", include_inactive: false } },
+      { group: "用药", method: "POST", path: "/api/medication/plans", body: { elder_user_id: "$user", name: "降压药", dosage_text: "1片", instruction_text: "饭后服用", schedule: [{ time: "08:00", label: "早饭后" }], status: "active" } },
+      { group: "用药", method: "PATCH", path: "/api/medication/plans/{medication_id}", query: { elder_user_id: "$user" }, body: { status: "paused" } },
+      { group: "定时事件", method: "GET", path: "/api/timed_events/due", query: { elder_user_id: "$user" } },
+      { group: "定时事件", method: "POST", path: "/api/timed_events/{event_id}/ack", body: { elder_user_id: "$user", ack: "taken", text: "已经吃了" } },
+      { group: "动作", method: "POST", path: "/api/action_complete", body: { action_id: "action_xxx", elder_user_id: "$user", action_type: "music", status: "completed", music_name: "月亮代表我的心", played_seconds: 30, total_seconds: 210, payload: {} } },
+      { group: "动作", method: "GET", path: "/api/actions/pending", query: { elder_user_id: "$user", target_channel: "frontend" } },
+      { group: "动作", method: "GET", path: "/api/frontend/actions/pending", query: { elder_user_id: "$user", risk_tier: "safe" } },
+      { group: "动作", method: "POST", path: "/api/actions/{action_id}/consent", body: { elder_user_id: "$user", accepted: true, source: "button" } },
+      { group: "相册", method: "POST", path: "/api/photo_library/sync", body: { elder_user_id: "$user", source: "frontend_album", sync_mode: "upsert", photos: [{ photo_id: "photo_001", url: "http://example.test/p1.jpg", original_file_name: "family.jpg", frontend_caption: "家人在公园", tags: ["家人"], permission: { allow_backend_cache: true, allow_visual_caption: false } }] } },
+      { group: "相册", method: "POST", path: "/api/photo_library/import", query: { elder_user_id: "$user", file_name: "album.json", source: "frontend_album", sync_mode: "upsert" }, body: { photos: [] } },
+      { group: "相册", method: "GET", path: "/api/photo_library/photos", query: { elder_user_id: "$user", query: "", limit: 20 } },
+      { group: "相册", method: "POST", path: "/api/photo_library/caption_pending", query: { elder_user_id: "$user", limit: 5, force: false }, body: { photo_ids: [] } },
+      { group: "音乐", method: "POST", path: "/api/music/library", body: { elder_user_id: "$user", sync_mode: "upsert", songs: [{ music_id: "song_001", name: "月亮代表我的心", artist: "邓丽君", description: "经典老歌，旋律柔和", mood_tags: ["怀旧", "安抚"], scene_tags: ["陪伴"], playable_ref: "frontend://music/song_001" }] } },
+      { group: "音乐", method: "GET", path: "/api/music/library", query: { elder_user_id: "$user", include_inactive: false } },
+      { group: "音乐", method: "GET", path: "/api/music/library/match", query: { elder_user_id: "$user", query: "安抚一点的老歌", limit: 1 } },
+      { group: "家庭", method: "GET", path: "/api/family/agent_policy", query: { elder_user_id: "$user", child_user_id: "$child" } },
+      { group: "家庭", method: "POST", path: "/api/family/agent_policy", body: { elder_user_id: "$user", child_user_id: "$child", actor_role: "child", policy: { preferred_tone: "温和、慢一点、不要催", suggested_topics: [] } } },
+      { group: "家庭", method: "GET", path: "/api/family/topics/available", query: { elder_user_id: "$user", child_user_id: "$child" } },
+      { group: "家庭", method: "POST", path: "/api/family/topics/{topic_id}/consume", query: { elder_user_id: "$user", child_user_id: "$child" } },
+      { group: "家庭", method: "POST", path: "/api/family/messages", body: { elder_user_id: "$user", child_user_id: "$child", message_type: "quiet_message", title: "女儿留言", content: "妈，今天降温了，记得加件衣服。", priority: "normal" } },
+      { group: "家庭", method: "GET", path: "/api/family/alerts", query: { elder_user_id: "$user", child_user_id: "$child", limit: 20 } },
+      { group: "家庭", method: "GET", path: "/api/family/elder_summary", query: { elder_user_id: "$user", child_user_id: "$child" } },
+      { group: "家庭", method: "POST", path: "/api/family/chat", body: { elder_user_id: "$user", child_user_id: "$child", message: "我妈最近状态怎么样？", context: {} }, stream: true },
+      { group: "老人端", method: "GET", path: "/api/elder/pending_messages", query: { elder_user_id: "$user", risk_tier: "safe" } },
+      { group: "老人端", method: "POST", path: "/api/elder/messages/{message_id}/consent", body: { elder_user_id: "$user", consent: "accepted", source: "button", raw_text: "可以，你读吧" } },
+      { group: "社区", method: "POST", path: "/api/community/announcements", body: { community_id: "community_001", actor_role: "community_admin", title: "本周体检通知", content: "周三上午社区卫生站提供免费血压检测。", tags: ["health"], priority: 2 } },
+      { group: "社区", method: "GET", path: "/api/community/announcements", query: { community_id: "community_001", only_active: true, limit: 20 } },
+      { group: "社区", method: "PATCH", path: "/api/community/announcements/{announcement_id}", query: { community_id: "community_001" }, body: { status: "cancelled" } },
+      { group: "社区", method: "DELETE", path: "/api/community/announcements/{announcement_id}", query: { community_id: "community_001" } },
+      { group: "社区", method: "POST", path: "/api/community/activities", body: { community_id: "community_001", title: "下午音乐活动", content: "社区活动室有怀旧音乐会。", time_text: "今天下午三点", location: "社区活动室", tags: ["music"], valid_until: new Date(Date.now() + 86400000).toISOString(), priority: 3 } },
+      { group: "社区", method: "GET", path: "/api/community/activities", query: { community_id: "community_001", only_active: true, limit: 20 } },
+      { group: "社区", method: "PATCH", path: "/api/community/activities/{activity_id}", query: { community_id: "community_001" }, body: { status: "cancelled" } },
+      { group: "社区", method: "DELETE", path: "/api/community/activities/{activity_id}", query: { community_id: "community_001" } },
+      { group: "社区", method: "GET", path: "/api/community/crisis_alerts", query: { elder_user_id: "$user", limit: 20 } },
+      { group: "主动", method: "GET", path: "/api/proactive_check", query: { user_id: "$user" } },
+      { group: "重置", method: "POST", path: "/api/reset_profile", query: { user_id: "$user" } },
+      { group: "重置", method: "POST", path: "/api/reset_memory", query: { user_id: "$user", include_legacy_rag: false } },
+    ];
+
+    function baseUrl() {
+      return $("baseUrl").value.trim().replace(/\/$/, "") || location.origin;
+    }
+
+    function currentUser() { return $("userId").value.trim() || "user_001"; }
+    function currentChild() { return $("childId").value.trim() || "child_001"; }
+    function pretty(value) { return JSON.stringify(value, null, 2); }
+
+    function materialize(value) {
+      if (Array.isArray(value)) return value.map(materialize);
+      if (value && typeof value === "object") {
+        return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, materialize(v)]));
+      }
+      if (value === "$user") return currentUser();
+      if (value === "$child") return currentChild();
+      return value;
+    }
+
+    function buildUrl(path, query = {}) {
+      const url = new URL(baseUrl() + path);
+      Object.entries(materialize(query)).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
+      });
+      return url.toString();
+    }
+
+    async function api(path, options = {}) {
+      const { method = "GET", query = {}, body, rawBody = false } = options;
+      const init = { method, headers: {} };
+      if (body !== undefined && method !== "GET") {
+        if (rawBody) {
+          init.body = typeof body === "string" ? body : JSON.stringify(body);
+          init.headers["Content-Type"] = "application/octet-stream";
+        } else {
+          init.body = JSON.stringify(materialize(body));
+          init.headers["Content-Type"] = "application/json";
+        }
+      }
+      const res = await fetch(buildUrl(path, query), init);
+      const text = await res.text();
+      let data = text;
+      try { data = JSON.parse(text); } catch {}
+      if (!res.ok) throw { status: res.status, body: data };
+      return data;
+    }
+
+    function addMessage(role, text) {
+      const node = document.createElement("div");
+      node.className = `msg ${role}`;
+      node.textContent = text;
+      $("chatLog").appendChild(node);
+      $("chatLog").scrollTop = $("chatLog").scrollHeight;
+      return node;
+    }
+
+    function formatAssistantReply(rawReply, userText) {
+      const reply = String(rawReply || "");
+      const input = String(userText || "").trim();
+      if (!reply || !input) return reply;
+
+      const startQuotes = /^[\s"'“”‘’「」『』【】]+/;
+      const visibleStart = reply.match(startQuotes)?.[0] || "";
+      const body = reply.slice(visibleStart.length);
+
+      if (input.startsWith(body) && body.length < input.length) return "";
+      if (!body.startsWith(input)) return reply;
+
+      return body
+        .slice(input.length)
+        .replace(/^[\s"'“”‘’「」『』【】:：,，.。!！?？;；、…-]+/, "");
+    }
+
+    function logEvent(event) {
+      state.events.push(event);
+      $("eventCount").textContent = String(state.events.length);
+      const node = document.createElement("div");
+      node.className = "event";
+      node.innerHTML = `<b>${event.type || "unknown"}</b><pre>${pretty(event)}</pre>`;
+      $("eventLog").prepend(node);
+    }
+
+    async function streamSse(pathOrPaths, payload, onEvent) {
+      const paths = Array.isArray(pathOrPaths) ? pathOrPaths : [pathOrPaths];
+      let lastError = null;
+      for (let i = 0; i < paths.length; i += 1) {
+        const path = paths[i];
+        try {
+          const res = await fetch(baseUrl() + path, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(materialize(payload)),
+          });
+          if (!res.ok || !res.body) {
+            const body = await res.text();
+            const error = { status: res.status, body };
+            if ((res.status === 404 || res.status === 405) && i < paths.length - 1) {
+              lastError = error;
+              continue;
+            }
+            throw error;
+          }
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let buffer = "";
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const chunks = buffer.split("\n\n");
+            buffer = chunks.pop() || "";
+            for (const chunk of chunks) {
+              const line = chunk.split("\n").find((item) => item.startsWith("data:"));
+              if (!line) continue;
+              const raw = line.slice(5).trim();
+              if (!raw) continue;
+              let event = { type: "raw", data: raw };
+              try { event = JSON.parse(raw); } catch {}
+              onEvent(event);
+            }
+          }
+          return path;
+        } catch (err) {
+          lastError = err;
+          if (err && (err.status === 404 || err.status === 405) && i < paths.length - 1) {
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw lastError || { status: 404, body: "No available chat endpoint" };
+    }
+
+    async function sendChat() {
+      const text = $("chatInput").value.trim() || $("quickMessage").value.trim();
+      if (!text) return;
+      $("quickMessage").value = text;
+      state.events = [];
+      $("eventLog").innerHTML = "";
+      $("eventCount").textContent = "0";
+      $("firstEventLatency").textContent = "-";
+      $("firstLatency").textContent = "-";
+      $("chainMode").textContent = "-";
+      $("totalLatency").textContent = "-";
+      addMessage("user", text);
+      const assistant = addMessage("assistant", "");
+      assistant.hidden = true;
+      const started = performance.now();
+      let firstEvent = null;
+      let firstToken = null;
+      let reply = "";
+      const chatPaths = ["/api/chat1", "/api/chat"];
+      state.lastRequest = {
+        path: chatPaths[0],
+        body: {
+          message: text,
+          user_id: currentUser(),
+          context: {
+            turn_id: `ui_${Date.now()}`,
+            source: "debug_console",
+            mode: $("chatMode").value,
+          },
+        },
+      };
+      $("lastRequest").textContent = pretty(state.lastRequest);
+
+      try {
+        const usedPath = await streamSse(chatPaths, state.lastRequest.body, (event) => {
+          if (firstEvent === null) {
+            firstEvent = performance.now();
+            $("firstEventLatency").textContent = `${Math.round(firstEvent - started)} ms`;
+          }
+          logEvent(event);
+          if (event.type === "step" && event.data?.name) {
+            $("chainMode").textContent = event.data.name;
+          }
+          if (event.type === "token") {
+            if (firstToken === null) {
+              firstToken = performance.now();
+              $("firstLatency").textContent = `${Math.round(firstToken - started)} ms`;
+            }
+            reply += event.data || event.content || "";
+            const visibleReply = formatAssistantReply(reply, text);
+            assistant.textContent = visibleReply;
+            assistant.hidden = !visibleReply;
+            $("chatLog").scrollTop = $("chatLog").scrollHeight;
+          }
+          if (event.type === "error") {
+            assistant.hidden = false;
+            assistant.textContent = pretty({ event: "error", data: event.data || event.content || event });
+          }
+        });
+        state.lastRequest.path = usedPath;
+        $("lastRequest").textContent = pretty(state.lastRequest);
+      } catch (err) {
+        assistant.hidden = false;
+        assistant.textContent = pretty({ event: "request_failed", data: err });
+      } finally {
+        $("totalLatency").textContent = `${Math.round(performance.now() - started)} ms`;
+        await loadTrace();
+      }
+    }
+
+    async function loadTrace() {
+      try {
+        const body = await api("/api/system_status", { query: { user_id: currentUser() } });
+        const data = body.data || body;
+        $("traceMain").textContent = pretty({
+          routing_decision: data.routing_decision,
+          tool_calls_analysis: data.tool_calls_analysis,
+          context_snapshot: data.context_snapshot,
+          background_tasks: data.background_tasks,
+        });
+        $("llmInputs").textContent = pretty({
+          agent_context: data.agent_context,
+          llm_inputs: data.llm_inputs,
+        });
+        $("memoryContext").textContent = data.agent_context?.memory_context || data.context_snapshot?.memory_context_preview || "-";
+        $("recentHistory").textContent = pretty(data.recent_chat_history || []);
+        $("memoryProfile").textContent = pretty(data.user_profile || {});
+      } catch (err) {
+        $("traceMain").textContent = pretty(err);
+      }
+    }
+
+    async function loadProfile() {
+      try {
+        const profile = await api("/api/profile", { query: { user_id: currentUser() } });
+        $("profileBody").value = pretty(profile);
+        $("profileResult").textContent = pretty(profile);
+      } catch (err) {
+        $("profileResult").textContent = pretty(err);
+      }
+    }
+
+    async function saveProfile() {
+      try {
+        const body = JSON.parse($("profileBody").value || "{}");
+        const result = await api("/api/profile", { method: "POST", query: { user_id: currentUser() }, body });
+        $("profileResult").textContent = pretty(result);
+      } catch (err) {
+        $("profileResult").textContent = pretty(err);
+      }
+    }
+
+    async function checkHealth() {
+      try {
+        const result = await api("/health");
+        $("healthText").textContent = result.status || "ok";
+        $("healthDot").classList.toggle("ok", result.status === "ok");
+      } catch {
+        $("healthText").textContent = "不可用";
+        $("healthDot").classList.remove("ok");
+      }
+    }
+
+    function selectEndpoint(index) {
+      state.selectedEndpoint = endpoints[index];
+      document.querySelectorAll(".endpoint-btn").forEach((el, i) => el.classList.toggle("active", i === index));
+      const item = state.selectedEndpoint;
+      $("endpointTitle").textContent = `${item.method} ${item.path}`;
+      $("endpointPath").value = item.path;
+      $("endpointQuery").value = pretty(materialize(item.query || {}));
+      $("endpointBody").value = pretty(materialize(item.body || {}));
+      $("endpointResult").textContent = "-";
+    }
+
+    async function runEndpoint() {
+      const item = state.selectedEndpoint;
+      if (!item) return;
+      let query = {};
+      let body = undefined;
+      try { query = JSON.parse($("endpointQuery").value || "{}"); } catch (err) { $("endpointResult").textContent = `Query JSON 错误\n${err}`; return; }
+      try { body = JSON.parse($("endpointBody").value || "{}"); } catch (err) { $("endpointResult").textContent = `Body JSON 错误\n${err}`; return; }
+      const path = $("endpointPath").value.trim();
+        state.lastRequest = { path, method: item.method, query, body };
+        $("lastRequest").textContent = pretty(state.lastRequest);
+        $("endpointResult").textContent = "loading...";
+        try {
+          if (item.stream) {
+            const events = [];
+          const usedPath = await streamSse(
+            path === "/api/chat1" ? ["/api/chat1", "/api/chat"] : [path],
+            body,
+            (event) => events.push(event),
+          );
+          state.lastRequest.path = usedPath;
+          $("lastRequest").textContent = pretty(state.lastRequest);
+          $("endpointResult").textContent = pretty(events);
+        } else {
+          const result = await api(path, {
+            method: item.method,
+            query,
+            body: item.method === "GET" || item.method === "DELETE" ? undefined : body,
+            rawBody: path.includes("/api/photo_library/import"),
+          });
+          $("endpointResult").textContent = pretty(result);
+        }
+      } catch (err) {
+        $("endpointResult").textContent = pretty(err);
+      }
+    }
+
+    function init() {
+      $("baseUrl").value = location.origin && location.protocol.startsWith("http") ? location.origin : "http://localhost:8082";
+      $("nav").innerHTML = views.map(([id, label], index) => `<button data-view="${id}" class="${index === 0 ? "active" : ""}">${label}<span>›</span></button>`).join("");
+      $("nav").addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-view]");
+        if (!btn) return;
+        document.querySelectorAll(".nav button").forEach((el) => el.classList.toggle("active", el === btn));
+        document.querySelectorAll(".view").forEach((el) => el.classList.toggle("active", el.dataset.view === btn.dataset.view));
+        if (btn.dataset.view === "memory") loadTrace();
+        if (btn.dataset.view === "profile") loadProfile();
+        if (btn.dataset.view === "trace") loadTrace();
+      });
+      $("endpointList").innerHTML = endpoints.map((item, index) => `
+        <button class="endpoint-btn" data-index="${index}">
+          <span class="method">${item.method} 路 ${item.group}</span>
+          <span>${item.path}</span>
+        </button>
+      `).join("");
+      $("endpointList").addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-index]");
+        if (btn) selectEndpoint(Number(btn.dataset.index));
+      });
+      selectEndpoint(0);
+
+      $("sendChat").addEventListener("click", sendChat);
+      $("topSend").addEventListener("click", () => { $("chatInput").value = $("quickMessage").value; sendChat(); });
+      $("chatInput").addEventListener("keydown", (event) => { if (event.key === "Enter") sendChat(); });
+      $("checkHealth").addEventListener("click", checkHealth);
+      $("clearChat").addEventListener("click", () => { $("chatLog").innerHTML = ""; $("eventLog").innerHTML = ""; state.events = []; $("eventCount").textContent = "0"; });
+      $("refreshTrace").addEventListener("click", loadTrace);
+      $("loadTrace").addEventListener("click", loadTrace);
+      $("loadMemory").addEventListener("click", loadTrace);
+      $("getProfile").addEventListener("click", loadProfile);
+      $("saveProfile").addEventListener("click", saveProfile);
+      $("runEndpoint").addEventListener("click", runEndpoint);
+      $("resetProfile").addEventListener("click", async () => {
+        try { $("resetResult").textContent = pretty(await api("/api/reset_profile", { method: "POST", query: { user_id: currentUser() }, body: {} })); }
+        catch (err) { $("resetResult").textContent = pretty(err); }
+      });
+      $("resetMemory").addEventListener("click", async () => {
+        try { $("resetResult").textContent = pretty(await api("/api/reset_memory", { method: "POST", query: { user_id: currentUser(), include_legacy_rag: $("includeLegacy").checked }, body: {} })); }
+        catch (err) { $("resetResult").textContent = pretty(err); }
+      });
+
+      addMessage("assistant", "后端启动后，可以直接发一条消息看流式返回。");
+      checkHealth();
+      loadProfile();
+    }
+
+    init();
+  </script>
+</body>
+</html>
+

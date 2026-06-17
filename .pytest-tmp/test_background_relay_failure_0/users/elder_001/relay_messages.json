@@ -1,0 +1,58 @@
+[
+  {
+    "id": "relay_2bf0e3d839ba4450bc2111e0b56db4cb",
+    "elder_user_id": "elder_001",
+    "target": "family",
+    "actor_role": "system",
+    "direction": "system_to_family",
+    "display_type": "alert",
+    "risk_tier": "crisis",
+    "title": "Family Crisis Alert",
+    "content": "Detected crisis-level expression. Original quote visible to family only: 不想活了\nSuggested action: Prioritize calm companionship and confirm current safety arrangement.",
+    "reason_summary": "Detected crisis-level expression. Original quote visible to family only: 不想活了",
+    "raw_quotes": [
+      "不想活了"
+    ],
+    "suggested_actions": [
+      "Prioritize calm companionship and confirm current safety arrangement."
+    ],
+    "payload": {
+      "assessment_id": "assess_6946528b99094d6ea9097fa6d6f6b951",
+      "turn_id": "turn_001",
+      "primary_state": "suicidal_ideation",
+      "next_goal": "stabilize immediate safety and relay support",
+      "visibility": "family",
+      "raw_quote_visible": true
+    },
+    "status": "pending",
+    "created_at": "2026-06-17T07:47:34.123104Z",
+    "updated_at": "2026-06-17T07:47:34.124509Z"
+  },
+  {
+    "id": "relay_80a6ad504b004bf783e82a1e5be19190",
+    "elder_user_id": "elder_001",
+    "target": "community",
+    "actor_role": "system",
+    "direction": "system_to_community",
+    "display_type": "sos",
+    "risk_tier": "crisis",
+    "title": "Community SOS",
+    "content": "Crisis-level expression detected; original quote is hidden from community view.",
+    "reason_summary": "Crisis-level expression detected; original quote is hidden from community view.",
+    "raw_quotes": [],
+    "suggested_actions": [
+      "Check current safety and companionship arrangement.",
+      "Coordinate with family contact if available."
+    ],
+    "payload": {
+      "assessment_id": "assess_6946528b99094d6ea9097fa6d6f6b951",
+      "turn_id": "turn_001",
+      "primary_state": "suicidal_ideation",
+      "visibility": "community_crisis_summary",
+      "raw_quote_visible": false
+    },
+    "status": "pending",
+    "created_at": "2026-06-17T07:47:34.123104Z",
+    "updated_at": "2026-06-17T07:47:34.137455Z"
+  }
+]

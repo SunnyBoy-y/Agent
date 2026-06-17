@@ -1,0 +1,26 @@
+{
+  "elder_user_id": "elder_001",
+  "version": 1,
+  "source_turn_id": "turn_latency",
+  "active_domain": "general",
+  "risk_tier": "safe",
+  "current_stage": "companionship",
+  "stage_goal": "continue warm companionship",
+  "next_turn_goal": "continue warm companionship",
+  "target_agent": "emotional_agent",
+  "allowed_interventions": [
+    "companionship",
+    "light_topic_shift"
+  ],
+  "blocked_interventions": [
+    "diagnosis",
+    "medical_advice"
+  ],
+  "abort_conditions": [
+    "newer_turn",
+    "crisis_signal"
+  ],
+  "expires_after_turns": 2,
+  "updated_by": "planner",
+  "updated_at": "2026-06-17T07:47:35.246957Z"
+}

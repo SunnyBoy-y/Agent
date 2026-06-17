@@ -1,0 +1,79 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Agent Console" [level=1] [ref=e5]
+      - paragraph [ref=e6]: FastAPI 调试台
+    - navigation [ref=e7]:
+      - button "聊天框 ›" [ref=e8] [cursor=pointer]:
+        - text: 聊天框
+        - generic [ref=e9]: ›
+      - button "记忆库 ›" [ref=e10] [cursor=pointer]:
+        - text: 记忆库
+        - generic [ref=e11]: ›
+      - button "调用链路 ›" [ref=e12] [cursor=pointer]:
+        - text: 调用链路
+        - generic [ref=e13]: ›
+      - button "人物画像 ›" [ref=e14] [cursor=pointer]:
+        - text: 人物画像
+        - generic [ref=e15]: ›
+      - button "清除画像 ›" [ref=e16] [cursor=pointer]:
+        - text: 清除画像
+        - generic [ref=e17]: ›
+      - button "其他功能 ›" [ref=e18] [cursor=pointer]:
+        - text: 其他功能
+        - generic [ref=e19]: ›
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]: Base URL
+        - textbox "Base URL" [ref=e23]: http://localhost:8082
+      - generic [ref=e24]:
+        - generic [ref=e25]: 老人 ID
+        - textbox "老人 ID" [ref=e26]: user_001
+      - generic [ref=e27]:
+        - generic [ref=e28]: 子女 ID
+        - textbox "子女 ID" [ref=e29]: child_001
+  - main [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: 当前消息
+        - textbox "当前消息" [ref=e34]: 今天心里有点闷，想聊聊天
+      - generic [ref=e35]:
+        - generic [ref=e36]: 链路模式
+        - combobox "链路模式" [ref=e37]:
+          - option "低延迟 chat1" [selected]
+          - option "完整 agent"
+      - button "发送" [ref=e38] [cursor=pointer]
+      - generic [ref=e41]: ok
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - heading "流式聊天" [level=2] [ref=e47]
+          - generic [ref=e48]:
+            - button "健康检查" [ref=e49] [cursor=pointer]
+            - button "清空" [ref=e50] [cursor=pointer]
+        - generic [ref=e52]: 后端启动后，可以直接发一条消息看流式返回。
+        - generic [ref=e53]:
+          - textbox [ref=e54]: 今天心里有点闷，想聊聊天
+          - button "发送" [ref=e55] [cursor=pointer]
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - heading "本轮指标" [level=2] [ref=e59]
+          - generic [ref=e61]:
+            - generic [ref=e62]:
+              - generic [ref=e63]: 首事件
+              - strong [ref=e64]: "-"
+            - generic [ref=e65]:
+              - generic [ref=e66]: 首 token
+              - strong [ref=e67]: "-"
+            - generic [ref=e68]:
+              - generic [ref=e69]: 链路
+              - strong [ref=e70]: "-"
+            - generic [ref=e71]:
+              - generic [ref=e72]: 总耗时
+              - strong [ref=e73]: "-"
+            - generic [ref=e74]:
+              - generic [ref=e75]: SSE 事件
+              - strong [ref=e76]: "0"
+        - generic [ref=e78]:
+          - heading "SSE 事件" [level=2] [ref=e79]
+          - button "刷新链路" [ref=e80] [cursor=pointer]

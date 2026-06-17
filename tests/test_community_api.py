@@ -31,6 +31,21 @@ class FakeOrchestrator:
             limit=limit,
         )
 
+    def update_community_announcement(self, community_id, announcement_id, request, now=None):
+        return self.community_service.update_announcement(
+            community_id,
+            announcement_id,
+            request,
+            now=now,
+        )
+
+    def delete_community_announcement(self, community_id, announcement_id, now=None):
+        return self.community_service.delete_announcement(
+            community_id,
+            announcement_id,
+            now=now,
+        )
+
     def create_community_activity(self, request, now=None):
         return self.community_service.create_activity(request, now=now)
 
@@ -42,8 +57,30 @@ class FakeOrchestrator:
             limit=limit,
         )
 
+    def update_community_activity(self, community_id, activity_id, request, now=None):
+        return self.community_service.update_activity(
+            community_id,
+            activity_id,
+            request,
+            now=now,
+        )
+
+    def delete_community_activity(self, community_id, activity_id, now=None):
+        return self.community_service.delete_activity(
+            community_id,
+            activity_id,
+            now=now,
+        )
+
     def list_community_crisis_alerts(self, elder_user_id, *, limit=20):
         return self.community_service.list_crisis_alerts(elder_user_id, limit=limit)
+
+    def list_community_crisis_alerts_by_community(self, community_id, *, group_by="elder", limit=20):
+        return self.community_service.list_crisis_alerts_by_community(
+            community_id,
+            group_by=group_by,
+            limit=limit,
+        )
 
 
 def _client(monkeypatch, tmp_path):
@@ -138,6 +175,76 @@ def test_community_activities_api_filters_expired_by_valid_until(monkeypatch, tm
     assert [item["id"] for item in listed.json()["data"]] == ["choir"]
 
 
+def test_community_announcements_api_supports_patch_and_delete(monkeypatch, tmp_path):
+    client, _ = _client(monkeypatch, tmp_path)
+    client.post(
+        "/api/community/announcements",
+        json={
+            "community_id": "community_001",
+            "id": "notice",
+            "title": "Old title",
+            "content": "Old content",
+            "priority": 1,
+        },
+    )
+
+    patched = client.patch(
+        "/api/community/announcements/notice",
+        params={"community_id": "community_001"},
+        json={"title": "New title", "priority": 5},
+    )
+    deleted = client.delete(
+        "/api/community/announcements/notice",
+        params={"community_id": "community_001"},
+    )
+    active = client.get(
+        "/api/community/announcements",
+        params={"community_id": "community_001"},
+    )
+    all_items = client.get(
+        "/api/community/announcements",
+        params={"community_id": "community_001", "only_active": False},
+    )
+
+    assert patched.status_code == 200
+    assert patched.json()["data"]["title"] == "New title"
+    assert patched.json()["data"]["priority"] == 5
+    assert deleted.status_code == 200
+    assert deleted.json()["data"]["status"] == "cancelled"
+    assert active.json()["data"] == []
+    assert all_items.json()["data"][0]["status"] == "cancelled"
+
+
+def test_community_activities_api_supports_patch_and_delete(monkeypatch, tmp_path):
+    client, _ = _client(monkeypatch, tmp_path)
+    valid_until = (datetime(2026, 5, 16, 8, 0, tzinfo=timezone.utc) + timedelta(hours=2)).isoformat()
+    client.post(
+        "/api/community/activities",
+        json={
+            "community_id": "community_001",
+            "id": "act",
+            "title": "Old activity",
+            "valid_until": valid_until,
+        },
+    )
+
+    patched = client.patch(
+        "/api/community/activities/act",
+        params={"community_id": "community_001"},
+        json={"title": "New activity", "location": "Room 2"},
+    )
+    deleted = client.delete(
+        "/api/community/activities/act",
+        params={"community_id": "community_001"},
+    )
+
+    assert patched.status_code == 200
+    assert patched.json()["data"]["title"] == "New activity"
+    assert patched.json()["data"]["location"] == "Room 2"
+    assert deleted.status_code == 200
+    assert deleted.json()["data"]["status"] == "cancelled"
+
+
 def test_community_crisis_alerts_api_sanitizes_elder_raw_quote(monkeypatch, tmp_path):
     client, fake = _client(monkeypatch, tmp_path)
     raw_text = "\u6211\u4e0d\u60f3\u6d3b\u4e86"
@@ -159,3 +266,30 @@ def test_community_crisis_alerts_api_sanitizes_elder_raw_quote(monkeypatch, tmp_
     assert payload["data"]["alerts"][0]["raw_quotes"] == []
     assert payload["data"]["alerts"][0]["payload"]["raw_quote_visible"] is False
     assert raw_text not in serialized
+
+
+def test_community_crisis_alerts_api_can_aggregate_by_community(monkeypatch, tmp_path):
+    client, fake = _client(monkeypatch, tmp_path)
+    for elder_user_id, turn_id in [("elder_001", "turn_001"), ("elder_002", "turn_002")]:
+        assessment = fake.assessment_service.assess_text(
+            "\u6211\u4e0d\u60f3\u6d3b\u4e86",
+            {"user_id": elder_user_id, "turn_id": turn_id},
+        )
+        fake.relay_message_service.create_from_assessment(assessment)
+
+    by_elder = client.get(
+        "/api/community/crisis_alerts",
+        params={"community_id": "community_001", "group_by": "elder"},
+    )
+    by_event = client.get(
+        "/api/community/crisis_alerts",
+        params={"community_id": "community_001", "group_by": "event"},
+    )
+
+    assert by_elder.status_code == 200
+    payload = by_elder.json()["data"]
+    assert payload["community_id"] == "community_001"
+    assert payload["total"] == 2
+    assert {group["group_key"] for group in payload["groups"]} == {"elder_001", "elder_002"}
+    assert by_event.status_code == 200
+    assert by_event.json()["data"]["groups"][0]["group_by"] == "event"

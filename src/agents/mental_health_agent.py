@@ -7,6 +7,7 @@ from src.config import Config
 from src.policies.safety_policy import SafetyPolicy
 from src.utils.logger import logger
 from src.utils.rag_helper import RAGHelper
+from src.agents.companion_prompt import build_companion_system_prompt, risk_from_context, stage_from_context
 
 class MentalHealthAgent:
     def __init__(self, safety_policy: SafetyPolicy | None = None):
@@ -50,37 +51,43 @@ class MentalHealthAgent:
         intervention_mode = self._detect_intervention_mode(input_text)
 
         if intervention_mode == "anxiety":
-            response = self._build_anxiety_guidance(context)
+            response = await self._build_anxiety_guidance(
+                input_text=input_text,
+                context=context,
+                profile_str=profile_str,
+                recent_history_text=recent_history_text,
+                knowledge_context=knowledge_context,
+            )
             return {
                 "content": self._safe_text(response, "medium"),
                 "action": "recommend_community_activity",
                 "risk_level": "medium"
             }
 
-        prompt = ChatPromptTemplate.from_template("""
-        你是一位陪伴型心理支持助手，专为老年人提供情绪陪伴与生活化支持。
-        
-        老人的状态: {input_text}
-        当前视觉情绪: {visual_emotion}
-        老人画像: {profile}
-        最近对话: {recent_history_text}
-        
-        检索到的心理学知识和相关记忆:
-        {knowledge_context}
-        
-        请运用“共情式倾听”和“积极心理暗示”技巧：
-        1. 先接纳老人的情绪（不评判）。
-        2. 优先参考检索到的心理学知识和相关记忆，不要只凭空泛安慰。
-        3. 引导老人关注当下的微小幸福。
-        4. 如果老人感到孤独，提供一个具体、可马上执行的建议（如给老友打个电话、晒晒太阳、去社区活动室坐坐）。
-        5. 语气温和、缓慢，像一位耐心倾听的晚辈兼专家。
-        6. 不做“抑郁症/焦虑症/双相”等诊断命名，不给医疗建议，不暴露内部推理或Thought。
-        
-        不要使用过于专业的术语，要生活化。
-        默认控制在2到3句话，安抚和建议都可以稍微展开一点。
-        只有在明显情绪风险较高或老人明确追问时，才放宽到3到4句话。
-        不要列点，不要用Markdown。
-        """)
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                build_companion_system_prompt(
+                    phase="mental_health_support",
+                    stage=stage_from_context(context, "anxiety.emotional_first_aid"),
+                    risk_tier=risk_from_context(context, "medium"),
+                    task=(
+                        "做生活化情绪支持：先接纳，再稳定，再给一个很小的下一步。"
+                        "小暖要像长期陪伴者，不像临床专家。"
+                    ),
+                    extra_rules=[
+                        "优先参考检索到的知识和记忆，但不要空泛说教。",
+                        "不做“抑郁症/焦虑症/双相”等诊断命名，不给医疗建议，不暴露内部推理或Thought。",
+                        "孤独时可以给一个马上能做的小建议，如晒太阳、联系熟人、去社区活动室坐坐。",
+                        "默认2到3句话；高风险时3到4句以内，短而稳。",
+                    ],
+                ),
+            ),
+            (
+                "human",
+                "老人的状态: {input_text}\n当前视觉情绪: {visual_emotion}\n老人画像: {profile}\n最近对话: {recent_history_text}\n\n检索到的心理学知识和相关记忆:\n{knowledge_context}\n\n请直接回复老人。",
+            ),
+        ])
         
         visual_emotion = context.get("visual_analysis", {}).get("emotion", "neutral")
         
@@ -98,6 +105,18 @@ class MentalHealthAgent:
             "action": "comfort",
             "risk_level": "medium" # 心理咨询通常意味着有一定困扰
         }
+
+    async def astream_response(self, input_text: str, context: dict = None):
+        result = await self.arun(input_text, context)
+        content = self._safe_text(result.get("content", ""), result.get("risk_level", "medium"))
+        result["content"] = content
+        for token in self._chunk_text(content):
+            yield {"type": "token", "data": token}
+        yield {"type": "done", "data": result}
+
+    def _chunk_text(self, text: str, chunk_size: int = 24) -> List[str]:
+        value = str(text or "")
+        return [value[index:index + chunk_size] for index in range(0, len(value), chunk_size)]
 
     async def _get_knowledge_context(self, input_text: str, context: Dict[str, Any]) -> str:
         """优先检索知识库和记忆，若索引不存在则尝试自动建立。"""
@@ -125,9 +144,45 @@ class MentalHealthAgent:
             return "lonely"
         return "general"
 
-    def _build_anxiety_guidance(self, context: Dict[str, Any]) -> str:
+    async def _build_anxiety_guidance(
+        self,
+        *,
+        input_text: str,
+        context: Dict[str, Any],
+        profile_str: str,
+        recent_history_text: str,
+        knowledge_context: str,
+    ) -> str:
         community_text = self._get_community_activity_text(context)
-        return f"您先别急，我陪您缓一缓，先把这口气慢慢顺下来。{community_text}"
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                build_companion_system_prompt(
+                    phase="anxiety_guidance",
+                    stage="anxiety.emotional_first_aid",
+                    risk_tier=risk_from_context(context, "medium"),
+                    task="生成焦虑/心慌时的生活化安抚回应，并在合适时自然带入社区活动线索。",
+                    extra_rules=[
+                        "只输出2到3句，不要诊断。",
+                        "先稳定当下，再给一个很小的下一步。",
+                        "社区活动线索只能作为可选陪伴，不要像硬推活动。",
+                    ],
+                ),
+            ),
+            (
+                "human",
+                "老人的状态: {input_text}\n老人画像: {profile}\n最近对话: {recent_history_text}\n知识/记忆: {knowledge_context}\n社区线索: {community_text}\n\n请直接回复老人。",
+            ),
+        ])
+        chain = prompt | self.llm
+        response = await chain.ainvoke({
+            "input_text": input_text,
+            "profile": profile_str,
+            "recent_history_text": recent_history_text,
+            "knowledge_context": knowledge_context or "暂无",
+            "community_text": community_text or "暂无",
+        })
+        return str(getattr(response, "content", "") or "")
 
     def _safe_text(self, text: str, risk_tier: str = "medium") -> str:
         return self.safety_policy.sanitize_response(text or "", risk_tier=risk_tier)
@@ -147,12 +202,12 @@ class MentalHealthAgent:
                     parts.append(location)
                 schedule = "，".join(parts)
                 if schedule:
-                    return f"{schedule}有{name}，俺也去陪您坐坐，跟大家说说话，心里会松一点。"
-                return f"社区这会儿有{name}，俺也去陪您坐坐，跟大家说说话，心里会松一点。"
+                    return f"{schedule}有{name}"
+                return f"社区这会儿有{name}"
             if isinstance(first, str) and first.strip():
-                return f"社区这会儿有{first.strip()}，俺也去陪您坐坐，跟大家说说话，心里会松一点。"
+                return f"社区这会儿有{first.strip()}"
 
-        return "下午社区活动室有聊天和唱歌，俺也去陪您坐坐，跟大家说说话，心里会松一点。"
+        return ""
 
     def _format_profile(self, profile: Dict[str, Any]) -> str:
         if not profile:

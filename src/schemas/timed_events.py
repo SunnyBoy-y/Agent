@@ -13,6 +13,7 @@ TimedEventType = Literal[
     "medication_overdue",
     "community_activity",
     "quiet_message",
+    "incoming_call",
     "action_followup",
 ]
 TimedEventStatus = Literal["pending", "delivered", "acknowledged", "snoozed", "expired", "cancelled"]
@@ -31,6 +32,10 @@ class MedicationPlan(BaseModel):
     name: str
     dosage_text: Optional[str] = None
     instruction_text: Optional[str] = None
+    medicine_photo_url: Optional[str] = None
+    medicine_photo_thumbnail_url: Optional[str] = None
+    medicine_photo_file_uuid: Optional[str] = None
+    medicine_photo_caption: Optional[str] = None
     source: str = "caregiver_prescription_record"
     schedule: List[ScheduleEntry] = Field(default_factory=list)
     window_before_minutes: int = Field(default=0, ge=0)
